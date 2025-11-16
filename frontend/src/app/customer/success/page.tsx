@@ -31,7 +31,7 @@ export default function SuccessPage() {
         className="mt-8 w-full max-w-xs"
       >
         <Link
-          href="/status"
+          href="/customer/status"
           className="block w-full bg-blue-600 text-white py-3 rounded-xl text-lg font-medium shadow hover:bg-blue-700 transition"
         >
           Lihat Status Pesanan

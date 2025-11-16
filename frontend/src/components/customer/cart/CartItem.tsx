@@ -42,14 +42,7 @@ export default function CartItem({
         <h3 className="text-lg font-semibold">{name}</h3>
         <p className="text-gray-500 text-sm">Rp {price.toLocaleString()}</p>
 
-        {/* --- INPUT CATATAN DI CART --- */}
-        <textarea
-          value={note || ""}
-          onChange={(e) => onNoteChange(e.target.value)}
-          placeholder="Catatan (misal: tidak pedas)"
-          className="w-full text-sm p-2 mt-2 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-400"
-        />
-
+        
         {/* Qty */}
         <div className="flex items-center gap-3 mt-3">
           <button
