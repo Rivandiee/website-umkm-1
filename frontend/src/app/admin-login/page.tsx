@@ -1,23 +1,57 @@
+// frontend/src/app/admin/login/page.tsx
+
 "use client";
 
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import axios from "axios"; // Import axios untuk panggilan API
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const API_URL = "/api/admin/login"; // Endpoint API login yang diasumsikan
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(""); // Bersihkan error sebelumnya
+    setIsLoading(true);
 
-    // Dummy login: ganti dengan API call
-    if (username === "admin" && password === "123456") {
-      router.push("/admin/dashboard");
-    } else {
-      setError("Username atau password salah!");
+    try {
+      // 1. Kirim kredensial ke API backend
+      const response = await axios.post(API_URL, {
+        username,
+        password,
+      });
+
+      // Asumsi: Backend merespons dengan data yang mengandung token JWT
+      const { token } = response.data;
+
+      if (token) {
+        // 2. Simpan token (misalnya di localStorage untuk sesi)
+        localStorage.setItem("admin_token", token);
+        
+        // 3. Redirect ke dashboard
+        router.push("/admin");
+      } else {
+        // Jika respons 200 OK tapi tidak ada token
+        setError("Login gagal. Respon API tidak valid.");
+      }
+
+    } catch (err: any) {
+      // 4. Tangani error dari API (e.g., 401 Unauthorized)
+      console.error("Login API Error:", err);
+      
+      // Ambil pesan error dari respons API atau gunakan pesan default
+      const errorMessage = err.response?.data?.message || "Username atau password salah!";
+      setError(errorMessage);
+
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -57,6 +91,7 @@ export default function AdminLoginPage() {
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Masukkan username"
               className="mt-1 w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              disabled={isLoading} // Menonaktifkan input saat loading
             />
           </div>
 
@@ -68,16 +103,20 @@ export default function AdminLoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Masukkan password"
               className="mt-1 w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              disabled={isLoading} // Menonaktifkan input saat loading
             />
           </div>
 
           <motion.button
             type="submit"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl shadow-lg transition-all mt-2"
+            whileHover={{ scale: isLoading ? 1 : 1.05 }} // Non-aktifkan hover scale saat loading
+            whileTap={{ scale: isLoading ? 1 : 0.95 }} // Non-aktifkan tap scale saat loading
+            className={`w-full text-white font-semibold py-3 rounded-xl shadow-lg transition-all mt-2 ${
+                isLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+            disabled={isLoading}
           >
-            Login
+            {isLoading ? "Memproses..." : "Login"}
           </motion.button>
         </form>
 
