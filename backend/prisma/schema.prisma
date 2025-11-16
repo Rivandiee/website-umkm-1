@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  menus       Menu[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Table {
+  id         Int        @id @default(autoincrement())
+  number     Int        @unique
+  qrCode     String     @unique
+  isOccupied Boolean     @default(false)
+  sessions   TableSession[]
+  orders     Order[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model TableSession {
+  id        Int      @id @default(autoincrement())
+  sessionId String   @unique
+  tableId   Int
+  createdAt DateTime @default(now())
+
+  table     Table    @relation(fields: [tableId], references: [id])
+}
+
+model Menu {
+  id          Int        @id @default(autoincrement())
+  name        String
+  slug        String     @unique
+  price       Int
+  image       String?
+  isAvailable Boolean     @default(true)
+  categoryId  Int
+  category    Category    @relation(fields: [categoryId], references: [id])
+  items       OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Order {
+  id            Int           @id @default(autoincrement())
+  status        OrderStatus   @default(PENDING)
+  paymentMethod PaymentMethod @default(CASH)
+  paymentStatus PaymentStatus @default(UNPAID)
+  totalPrice    Int
+  customerName  String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  tableId       Int
+  table         Table         @relation(fields: [tableId], references: [id])
+  items         OrderItem[]
+  transaction   Transaction?
+}
+
+model OrderItem {
+  id      Int    @id @default(autoincrement())
+  qty     Int
+  note    String?
+  price   Int
+  orderId Int
+  menuId  Int
+  menu    Menu  @relation(fields: [menuId], references: [id])
+  order   Order @relation(fields: [orderId], references: [id])
+}
+
+model Transaction {
+  id          Int           @id @default(autoincrement())
+  orderId     Int           @unique
+  paidAt      DateTime      @default(now())
+  amount      Int
+  method      PaymentMethod
+  reference   String        @unique
+  order       Order         @relation(fields: [orderId], references: [id])
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  DONE
+}
+
+enum PaymentMethod {
+  CASH
+  NONCASH
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+}
