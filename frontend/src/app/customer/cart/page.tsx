@@ -88,7 +88,7 @@ export default function CartPage() {
       </div>
 
       <Link
-        href="/customer/success"
+        href="/customer/payment"
         className="block mt-5 bg-blue-600 text-white text-center py-3 rounded-xl text-lg font-semibold hover:bg-blue-700 transition"
       >
         Checkout
