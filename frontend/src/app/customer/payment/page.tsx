@@ -361,8 +361,6 @@ export default function PaymentPage() {
         </div>
       </div>
 
-      // frontend/src/app/customer/payment/page.tsx
-// Update bagian Cash Confirmation Modal dengan responsive fixes
 
 {/* Cash Confirmation Modal - FULLY RESPONSIVE */}
 <AnimatePresence>
