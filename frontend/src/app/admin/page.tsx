@@ -54,8 +54,8 @@ export default function AdminDashboardPage() {
         className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4"
       >
         {/* PERUBAHAN DISINI: Mengganti "+ Tambah Menu" menjadi "Lihat Penjualan" */}
-        <Link href="/admin/transactions" className="bg-indigo-600 hover:bg-indigo-700 text-white text-center py-3 rounded-xl font-semibold shadow transition-all">
-          Lihat Penjualan
+        <Link href="/admin/statistics" className="bg-indigo-600 hover:bg-indigo-700 text-white text-center py-3 rounded-xl font-semibold shadow transition-all">
+          Lihat Statistic Penjualan
         </Link>
         
         <Link href="/admin/menus" className="bg-green-600 hover:bg-green-700 text-white text-center py-3 rounded-xl font-semibold shadow transition-all">
