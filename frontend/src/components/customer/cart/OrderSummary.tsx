@@ -1,9 +1,9 @@
-// frontend/src/components/customer/cart/OrderSummary.tsx
+// src/components/customer/cart/OrderSummary.tsx
 "use client";
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { AlertCircle, CheckCircle, ArrowLeft } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle } from "lucide-react";
 
 interface OrderSummaryProps {
   subtotal: number;

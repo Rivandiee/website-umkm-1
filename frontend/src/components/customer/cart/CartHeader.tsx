@@ -1,4 +1,4 @@
-// frontend/src/components/customer/cart/CartHeader.tsx
+// src/components/customer/cart/CartHeader.tsx
 "use client";
 
 import { motion } from "framer-motion";
@@ -7,15 +7,10 @@ import { ArrowLeft, ShoppingCart, Trash2 } from "lucide-react";
 
 interface CartHeaderProps {
   cartCount: number;
-  onClearCart: () => void;
-  showClearButton: boolean;
+  onOpenClearModal: () => void;
 }
 
-export default function CartHeader({ 
-  cartCount, 
-  onClearCart, 
-  showClearButton 
-}: CartHeaderProps) {
+export default function CartHeader({ cartCount, onOpenClearModal }: CartHeaderProps) {
   return (
     <motion.div
       initial={{ y: -20, opacity: 0 }}
@@ -41,14 +36,16 @@ export default function CartHeader({
           )}
         </div>
         
-        {showClearButton && (
+        {cartCount > 0 ? (
           <button
-            onClick={onClearCart}
+            onClick={onOpenClearModal}
             className="text-red-500 hover:text-red-700 transition-colors"
             title="Kosongkan keranjang"
           >
             <Trash2 size={20} />
           </button>
+        ) : (
+          <span className="w-5" />
         )}
       </div>
     </motion.div>

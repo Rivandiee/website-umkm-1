@@ -1,4 +1,4 @@
-// frontend/src/components/customer/cart/CustomerInfoForm.tsx
+// src/components/customer/cart/CustomerInfoForm.tsx
 "use client";
 
 import { motion } from "framer-motion";
@@ -8,18 +8,18 @@ interface CustomerInfoFormProps {
   customerName: string;
   tableNumber: string;
   globalNote: string;
-  onCustomerNameChange: (value: string) => void;
-  onTableNumberChange: (value: string) => void;
-  onGlobalNoteChange: (value: string) => void;
+  onChangeCustomerName: (value: string) => void;
+  onChangeTableNumber: (value: string) => void;
+  onChangeGlobalNote: (value: string) => void;
 }
 
 export default function CustomerInfoForm({
   customerName,
   tableNumber,
   globalNote,
-  onCustomerNameChange,
-  onTableNumberChange,
-  onGlobalNoteChange,
+  onChangeCustomerName,
+  onChangeTableNumber,
+  onChangeGlobalNote,
 }: CustomerInfoFormProps) {
   return (
     <motion.div
@@ -39,7 +39,7 @@ export default function CustomerInfoForm({
           <input
             type="text"
             value={customerName}
-            onChange={(e) => onCustomerNameChange(e.target.value)}
+            onChange={(e) => onChangeCustomerName(e.target.value)}
             placeholder="Masukkan nama Anda..."
             className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
@@ -51,7 +51,7 @@ export default function CustomerInfoForm({
           <input
             type="text"
             value={tableNumber}
-            onChange={(e) => onTableNumberChange(e.target.value)}
+            onChange={(e) => onChangeTableNumber(e.target.value)}
             placeholder="Contoh: 12"
             className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
@@ -62,7 +62,7 @@ export default function CustomerInfoForm({
           </label>
           <textarea
             value={globalNote}
-            onChange={(e) => onGlobalNoteChange(e.target.value)}
+            onChange={(e) => onChangeGlobalNote(e.target.value)}
             placeholder="Contoh: Tidak pakai cabai, porsi besar..."
             className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
             rows={3}
