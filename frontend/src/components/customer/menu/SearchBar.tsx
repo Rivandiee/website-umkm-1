@@ -1,15 +1,32 @@
+// frontend/src/components/customer/menu/SearchBar.tsx
 "use client";
-import { Search } from "lucide-react";
 
-export default function SearchBar() {
+import { Search } from "lucide-react";
+import { motion } from "framer-motion";
+
+interface SearchBarProps {
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+}
+
+export default function SearchBar({ searchQuery, setSearchQuery }: SearchBarProps) {
   return (
-    <div className="relative">
+    <motion.div
+      initial={{ y: 20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      className="relative"
+    >
+      <Search
+        className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
+        size={20}
+      />
       <input
         type="text"
-        placeholder="Cari menu favorit..."
-        className="w-full py-2.5 pl-10 pr-4 rounded-xl border border-gray-300 shadow-sm focus:ring-2 focus:ring-orange-500"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder="Cari menu favorit Anda..."
+        className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent shadow-sm"
       />
-      <Search className="absolute left-3 top-2.5 text-gray-500" size={18} />
-    </div>
+    </motion.div>
   );
 }
