@@ -1,5 +1,3 @@
-// frontend/src/app/admin/orders/page.tsx
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -137,6 +135,7 @@ export default function AdminOrdersPage() {
     color: string;
     bgColor: string;
     borderColor: string;
+    description: string;
   }> = [
     {
       id: "ALL",
@@ -145,6 +144,7 @@ export default function AdminOrdersPage() {
       color: "text-gray-700",
       bgColor: "bg-gray-100",
       borderColor: "border-gray-300",
+      description: "Semua pesanan",
     },
     {
       id: "PENDING",
@@ -153,6 +153,7 @@ export default function AdminOrdersPage() {
       color: "text-yellow-700",
       bgColor: "bg-yellow-100",
       borderColor: "border-yellow-300",
+      description: "Pesanan baru menunggu",
     },
     {
       id: "PREPARING",
@@ -161,6 +162,7 @@ export default function AdminOrdersPage() {
       color: "text-blue-700",
       bgColor: "bg-blue-100",
       borderColor: "border-blue-300",
+      description: "Sedang dikerjakan",
     },
     {
       id: "DONE",
@@ -169,6 +171,7 @@ export default function AdminOrdersPage() {
       color: "text-green-700",
       bgColor: "bg-green-100",
       borderColor: "border-green-300",
+      description: "Pesanan selesai",
     },
   ];
 
@@ -682,103 +685,178 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="bg-white rounded-xl shadow-md p-4 mb-6">
-        <div className="flex flex-col gap-4">
-          {/* Tab Buttons */}
-          <div className="flex flex-wrap gap-2">
-            {filterTabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeFilter === tab.id;
-              const count = getTabCount(tab.id);
+      {/* Filter Section - 4 Column Horizontal Layout */}
+      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+        {/* Main Filter Tabs - 4 Columns Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {filterTabs.slice(1).map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeFilter === tab.id;
+            const count = getTabCount(tab.id);
 
-              return (
-                <motion.button
-                  key={tab.id}
-                  onClick={() => setActiveFilter(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all ${
-                    isActive
-                      ? `${tab.bgColor} ${tab.color} ${tab.borderColor} border-2 shadow-md`
-                      : "bg-gray-50 text-gray-600 border-2 border-transparent hover:bg-gray-100"
-                  }`}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Icon size={18} />
-                  <span>{tab.label}</span>
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                      isActive ? "bg-white bg-opacity-80" : "bg-gray-200"
-                    }`}
-                  >
-                    {count}
-                  </span>
-                </motion.button>
-              );
-            })}
-          </div>
-
-          {/* Search Bar */}
-          <div className="relative">
-            <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              size={20}
-            />
-            <input
-              type="text"
-              placeholder="Cari berdasarkan nama, nomor meja, atau ID pesanan..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            return (
+              <motion.button
+                key={tab.id}
+                onClick={() => setActiveFilter(tab.id)}
+                className={`relative overflow-hidden rounded-xl p-5 text-left transition-all ${
+                  isActive
+                    ? `${tab.bgColor} ${tab.color} border-2 ${tab.borderColor} shadow-lg`
+                    : "bg-gray-50 text-gray-600 border-2 border-gray-200 hover:border-gray-300 hover:shadow-md"
+                }`}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
               >
-                <X size={18} />
-              </button>
-            )}
-          </div>
+                {/* Background Icon Decoration */}
+                <div className={`absolute -right-4 -top-4 opacity-10 ${isActive ? 'opacity-20' : ''}`}>
+                  <Icon size={80} />
+                </div>
 
-          {/* Active Filter Indicator */}
-          {(activeFilter !== "ALL" || searchQuery) && (
+                {/* Content */}
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className={`p-2.5 rounded-lg ${isActive ? 'bg-white bg-opacity-30' : 'bg-white'}`}>
+                      <Icon size={24} />
+                    </div>
+                    <motion.span
+                      className={`text-2xl font-bold ${isActive ? '' : 'text-gray-400'}`}
+                      animate={isActive ? { scale: [1, 1.1, 1] } : {}}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {count}
+                    </motion.span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-1">{tab.label}</h3>
+                  <p className={`text-xs ${isActive ? 'opacity-80' : 'text-gray-500'}`}>
+                    {tab.description}
+                  </p>
+                </div>
+
+                {/* Active Indicator */}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-1 bg-current"
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
+              </motion.button>
+            );
+          })}
+        </div>
+
+        {/* "Show All" Button */}
+        <div className="mb-6">
+          <motion.button
+            onClick={() => setActiveFilter("ALL")}
+            className={`w-full flex items-center justify-between p-4 rounded-xl text-left transition-all ${
+              activeFilter === "ALL"
+                ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
+                : "bg-gray-50 text-gray-700 border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+            }`}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${activeFilter === "ALL" ? 'bg-white bg-opacity-20' : 'bg-white'}`}>
+                <Layers size={24} className={activeFilter === "ALL" ? "text-white" : "text-blue-600"} />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">Tampilkan Semua Pesanan</h3>
+                <p className={`text-sm ${activeFilter === "ALL" ? 'text-blue-100' : 'text-gray-500'}`}>
+                  Lihat seluruh pesanan dalam tampilan kanban
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`text-3xl font-bold ${activeFilter === "ALL" ? 'text-white' : 'text-blue-600'}`}>
+                {stats.total}
+              </span>
+            </div>
+          </motion.button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <Search
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
+            size={20}
+          />
+          <input
+            type="text"
+            placeholder="Cari berdasarkan nama pelanggan, nomor meja, atau ID pesanan..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-12 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-full transition-all"
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
+
+        {/* Active Filter Indicator */}
+        {(activeFilter !== "ALL" || searchQuery) && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-4 pt-4 border-t border-gray-200"
+          >
             <div className="flex items-center gap-2 text-sm flex-wrap">
-              <span className="text-gray-600">Filter aktif:</span>
+              <span className="text-gray-600 font-medium">Filter aktif:</span>
               {activeFilter !== "ALL" && (
-                <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-medium flex items-center gap-1">
+                <motion.span
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold flex items-center gap-2 border border-blue-200"
+                >
+                  {(() => {
+                    const tab = filterTabs.find(t => t.id === activeFilter);
+                    const Icon = tab?.icon;
+                    return Icon ? <Icon size={16} /> : null;
+                  })()}
                   {filterTabs.find(t => t.id === activeFilter)?.label}
                   <button
                     onClick={() => setActiveFilter("ALL")}
-                    className="hover:bg-blue-200 rounded-full p-0.5"
+                    className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
                   >
-                    <X size={14} />
+                    <X size={16} />
                   </button>
-                </span>
+                </motion.span>
               )}
               {searchQuery && (
-                <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full font-medium flex items-center gap-1">
-                  Pencarian: "{searchQuery}"
+                <motion.span
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold flex items-center gap-2 border border-gray-300"
+                >
+                  <Search size={16} />
+                  "{searchQuery}"
                   <button
                     onClick={() => setSearchQuery("")}
-                    className="hover:bg-gray-200 rounded-full p-0.5"
+                    className="hover:bg-gray-200 rounded-full p-0.5 transition-colors"
                   >
-                    <X size={14} />
+                    <X size={16} />
                   </button>
-                </span>
+                </motion.span>
               )}
               <button
                 onClick={() => {
                   setActiveFilter("ALL");
                   setSearchQuery("");
                 }}
-                className="text-blue-600 hover:text-blue-700 font-medium"
+                className="ml-auto px-4 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-semibold rounded-lg transition-all flex items-center gap-2"
               >
+                <Filter size={16} />
                 Reset semua filter
               </button>
             </div>
-          )}
-        </div>
+          </motion.div>
+        )}
       </div>
 
       {/* Results Summary */}

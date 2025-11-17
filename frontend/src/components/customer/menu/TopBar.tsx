@@ -47,9 +47,6 @@ export default function TopBar({ cartCount, onCartClick }: TopBarProps) {
               </span>
             )}
           </button>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <User size={24} className="text-gray-700" />
-          </button>
         </div>
       </div>
     </motion.div>

@@ -14,16 +14,16 @@ export default function CategoryList({
   setSelectedCategory,
 }: CategoryListProps) {
   const categories = [
-    { id: "All", name: "Semua", icon: Utensils },
-    { id: "Makanan", name: "Makanan", icon: Pizza },
-    { id: "Minuman", name: "Minuman", icon: Coffee },
-    { id: "Dessert", name: "Dessert", icon: IceCream },
+    { id: "All", name: "Semua", },
+    { id: "Makanan", name: "Makanan",},
+    { id: "Minuman", name: "Minuman",},
+    { id: "Dessert", name: "Dessert",},
   ];
 
   return (
     <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
       {categories.map((category, index) => {
-        const Icon = category.icon;
+        const Icon = category;
         const isActive = selectedCategory === category.id;
 
         return (
@@ -39,7 +39,6 @@ export default function CategoryList({
                 : "bg-white text-gray-700 hover:bg-gray-100"
             }`}
           >
-            <Icon size={18} />
             {category.name}
           </motion.button>
         );
