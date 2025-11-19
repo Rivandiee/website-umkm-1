@@ -11,7 +11,9 @@ import {
   Eye,
   EyeOff,
   Filter,
-  X
+  X,
+  Upload,
+  Image as ImageIcon
 } from "lucide-react";
 import Image from "next/image";
 
@@ -22,7 +24,7 @@ interface Menu {
   category: string;
   price: number;
   description: string;
-  image: string;
+  image: string; // Bisa berupa URL atau base64
   available: boolean;
 }
 
@@ -46,6 +48,10 @@ export default function AdminMenusPage() {
     image: "",
     available: true,
   });
+
+  // Image preview state
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   // Categories
   const categories = ["All", "Makanan", "Minuman", "Snack", "Dessert"];
@@ -121,6 +127,42 @@ export default function AdminMenusPage() {
     setFormData({ ...formData, [name]: value });
   };
 
+  // Handle image file selection
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validasi tipe file
+      if (!file.type.startsWith('image/')) {
+        alert('File harus berupa gambar!');
+        return;
+      }
+
+      // Validasi ukuran file (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Ukuran file maksimal 5MB!');
+        return;
+      }
+
+      setImageFile(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setImagePreview(result);
+        setFormData({ ...formData, image: result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Remove selected image
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview("");
+    setFormData({ ...formData, image: "" });
+  };
+
   // Open add modal
   const handleAddMenu = () => {
     setModalMode("add");
@@ -132,6 +174,8 @@ export default function AdminMenusPage() {
       image: "",
       available: true,
     });
+    setImagePreview("");
+    setImageFile(null);
     setShowModal(true);
   };
 
@@ -147,6 +191,8 @@ export default function AdminMenusPage() {
       image: menu.image,
       available: menu.available,
     });
+    setImagePreview(menu.image); // Set existing image as preview
+    setImageFile(null);
     setShowModal(true);
   };
 
@@ -162,7 +208,7 @@ export default function AdminMenusPage() {
         category: formData.category,
         price: Number(formData.price),
         description: formData.description,
-        image: formData.image,
+        image: formData.image, // Akan berisi base64 string atau URL
         available: formData.available,
       };
       setMenus([...menus, newMenu]);
@@ -178,6 +224,8 @@ export default function AdminMenusPage() {
     }
 
     setShowModal(false);
+    setImagePreview("");
+    setImageFile(null);
   };
 
   // Delete menu
@@ -315,7 +363,15 @@ export default function AdminMenusPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4">
                         <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
-                          <span className="text-gray-400 text-xs">IMG</span>
+                          {menu.image ? (
+                            <img 
+                              src={menu.image} 
+                              alt={menu.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-gray-400 text-xs">IMG</span>
+                          )}
                         </div>
                         <div>
                           <div className="font-semibold text-gray-800">
@@ -391,7 +447,7 @@ export default function AdminMenusPage() {
             animate={{ scale: 1, opacity: 1 }}
             className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
           >
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
               <h2 className="text-2xl font-bold text-gray-800">
                 {modalMode === "add" ? "Tambah Menu Baru" : "Edit Menu"}
               </h2>
@@ -469,18 +525,57 @@ export default function AdminMenusPage() {
                 />
               </div>
 
+              {/* Image Upload Section */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  URL Gambar
+                  Gambar Menu
                 </label>
-                <input
-                  type="text"
-                  name="image"
-                  value={formData.image}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="/images/menu.jpg"
-                />
+                
+                {/* Image Preview */}
+                {imagePreview ? (
+                  <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden mb-3 border-2 border-gray-300">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-full">
+                    <label
+                      htmlFor="image-upload"
+                      className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all"
+                    >
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-12 h-12 mb-3 text-gray-400" />
+                        <p className="mb-2 text-sm text-gray-500">
+                          <span className="font-semibold">Klik untuk upload</span> atau drag & drop
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          PNG, JPG, JPEG (MAX. 5MB)
+                        </p>
+                      </div>
+                      <input
+                        id="image-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                )}
+
+                <p className="text-xs text-gray-500 mt-2">
+                  * Upload gambar dengan resolusi minimal 800x800px untuk hasil terbaik
+                </p>
               </div>
 
               <div className="flex items-center gap-2">
