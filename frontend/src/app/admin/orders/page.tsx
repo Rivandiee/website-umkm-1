@@ -18,11 +18,14 @@ import {
   Users,
   Calendar,
   Download,
-  Layers
+  Layers,
+  QrCode,
+  Wallet
 } from "lucide-react";
 
 type OrderStatus = "PENDING" | "PREPARING" | "DONE" | "CANCELLED";
 type FilterTab = "ALL" | OrderStatus;
+type PaymentMethod = "CASH" | "QR";
 
 interface OrderItem {
   name: string;
@@ -40,6 +43,7 @@ interface Order {
   items: OrderItem[];
   createdAt: string;
   updatedAt: string;
+  paymentMethod: PaymentMethod;
 }
 
 export default function AdminOrdersPage() {
@@ -50,6 +54,7 @@ export default function AdminOrdersPage() {
       tableNumber: 5,
       totalPrice: 45000,
       status: "PENDING",
+      paymentMethod: "CASH",
       items: [
         { name: "Nasi Goreng Spesial", qty: 1, price: 25000 },
         { name: "Es Teh Manis", qty: 2, price: 5000 },
@@ -64,6 +69,7 @@ export default function AdminOrdersPage() {
       tableNumber: 12,
       totalPrice: 20000,
       status: "PREPARING",
+      paymentMethod: "QR",
       items: [{ name: "Ayam Geprek Sambal", qty: 1, price: 20000 }],
       createdAt: "2025-11-17T17:25:00",
       updatedAt: "2025-11-17T17:28:00",
@@ -74,6 +80,7 @@ export default function AdminOrdersPage() {
       tableNumber: 1,
       totalPrice: 75000,
       status: "DONE",
+      paymentMethod: "CASH",
       items: [
         { name: "Sate Ayam", qty: 2, price: 30000 },
         { name: "Air Mineral", qty: 3, price: 5000 },
@@ -87,6 +94,7 @@ export default function AdminOrdersPage() {
       tableNumber: 8,
       totalPrice: 35000,
       status: "PENDING",
+      paymentMethod: "QR",
       items: [
         { name: "Mie Goreng", qty: 1, price: 20000 },
         { name: "Jus Jeruk", qty: 1, price: 15000 },
@@ -100,6 +108,7 @@ export default function AdminOrdersPage() {
       tableNumber: 3,
       totalPrice: 50000,
       status: "PREPARING",
+      paymentMethod: "CASH",
       items: [
         { name: "Nasi Goreng", qty: 1, price: 25000 },
         { name: "Ayam Bakar", qty: 1, price: 25000 },
@@ -113,6 +122,7 @@ export default function AdminOrdersPage() {
       tableNumber: 7,
       totalPrice: 60000,
       status: "DONE",
+      paymentMethod: "QR",
       items: [
         { name: "Soto Ayam", qty: 2, price: 30000 },
       ],
@@ -175,6 +185,21 @@ export default function AdminOrdersPage() {
     },
   ];
 
+  // Helper functions for payment method
+  const getPaymentBadge = (method: PaymentMethod) => {
+    return method === "CASH"
+      ? "bg-green-50 text-green-700 border-green-300"
+      : "bg-purple-50 text-purple-700 border-purple-300";
+  };
+
+  const getPaymentIcon = (method: PaymentMethod) => {
+    return method === "CASH" ? <Wallet size={16} /> : <QrCode size={16} />;
+  };
+
+  const getPaymentLabel = (method: PaymentMethod) => {
+    return method === "CASH" ? "Tunai" : "QR Code";
+  };
+
   // Filter orders based on active tab and search query
   const getFilteredOrders = () => {
     let filtered = orders;
@@ -182,6 +207,9 @@ export default function AdminOrdersPage() {
     // Filter by status tab
     if (activeFilter !== "ALL") {
       filtered = filtered.filter((order) => order.status === activeFilter);
+    } else {
+      // Ketika filter "ALL", hanya tampilkan PENDING dan PREPARING, exclude DONE
+      filtered = filtered.filter((order) => order.status === "PENDING" || order.status === "PREPARING");
     }
 
     // Filter by search query
@@ -220,7 +248,10 @@ export default function AdminOrdersPage() {
 
   // Get count for each filter tab
   const getTabCount = (tabId: FilterTab) => {
-    if (tabId === "ALL") return orders.length;
+    if (tabId === "ALL") {
+      // Untuk ALL, hitung hanya PENDING dan PREPARING
+      return orders.filter(o => o.status === "PENDING" || o.status === "PREPARING").length;
+    }
     return orders.filter(o => o.status === tabId).length;
   };
 
@@ -259,7 +290,6 @@ export default function AdminOrdersPage() {
           : order
       )
     );
-
     setNewOrderAlert(true);
     setTimeout(() => setNewOrderAlert(false), 3000);
   };
@@ -316,6 +346,11 @@ export default function AdminOrdersPage() {
               >
                 {getStatusIcon(order.status)}
                 {order.status}
+              </span>
+              {/* Payment Method Badge */}
+              <span className={`px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1 ${getPaymentBadge(order.paymentMethod)}`}>
+                {getPaymentIcon(order.paymentMethod)}
+                {getPaymentLabel(order.paymentMethod)}
               </span>
               <span className="text-sm font-bold text-gray-500">
                 Order #{order.id}
@@ -479,7 +514,12 @@ export default function AdminOrdersPage() {
       onClick={() => viewDetails(order)}
     >
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-bold text-gray-500">#{order.id}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-gray-500">#{order.id}</span>
+          <span className={`px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1 ${getPaymentBadge(order.paymentMethod)}`}>
+            {getPaymentIcon(order.paymentMethod)}
+          </span>
+        </div>
         <span className="text-xs text-gray-500 flex items-center gap-1">
           <Clock size={12} />
           {formatTime(order.createdAt)}
@@ -761,15 +801,15 @@ export default function AdminOrdersPage() {
                 <Layers size={24} className={activeFilter === "ALL" ? "text-white" : "text-blue-600"} />
               </div>
               <div>
-                <h3 className="font-bold text-lg">Tampilkan Semua Pesanan</h3>
+                <h3 className="font-bold text-lg">Tampilkan Pesanan Aktif</h3>
                 <p className={`text-sm ${activeFilter === "ALL" ? 'text-blue-100' : 'text-gray-500'}`}>
-                  Lihat seluruh pesanan dalam tampilan kanban
+                  Lihat pesanan menunggu dan diproses (tanpa yang selesai)
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <span className={`text-3xl font-bold ${activeFilter === "ALL" ? 'text-white' : 'text-blue-600'}`}>
-                {stats.total}
+                {getTabCount("ALL")}
               </span>
             </div>
           </motion.button>
@@ -890,7 +930,7 @@ export default function AdminOrdersPage() {
           </AnimatePresence>
         </div>
       ) : (
-        // Kanban Board View (when showing all)
+        // Kanban Board View (when showing all) - Hanya tampilkan PENDING dan PREPARING
         <div className="flex gap-4 overflow-x-auto pb-4">
           <OrderColumn
             title="Menunggu"
@@ -905,13 +945,6 @@ export default function AdminOrdersPage() {
             count={preparingOrders.length}
             orders={preparingOrders}
             color="bg-blue-100 text-blue-700"
-          />
-          <OrderColumn
-            title="Selesai"
-            icon={CheckCircle}
-            count={doneOrders.length}
-            orders={doneOrders}
-            color="bg-green-100 text-green-700"
           />
         </div>
       )}
@@ -960,6 +993,14 @@ export default function AdminOrdersPage() {
                     <p className="font-semibold text-gray-800">
                       Meja {selectedOrder.tableNumber}
                     </p>
+                  </div>
+                  {/* Payment Method */}
+                  <div className="col-span-2">
+                    <p className="text-sm text-gray-600 mb-2">Metode Pembayaran</p>
+                    <span className={`px-4 py-2 rounded-lg text-sm font-semibold border inline-flex items-center gap-2 ${getPaymentBadge(selectedOrder.paymentMethod)}`}>
+                      {getPaymentIcon(selectedOrder.paymentMethod)}
+                      {selectedOrder.paymentMethod === "CASH" ? "Pembayaran Tunai" : "Pembayaran QR Code (QRIS/E-Wallet)"}
+                    </span>
                   </div>
                 </div>
               </div>
