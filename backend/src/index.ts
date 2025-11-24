@@ -5,6 +5,10 @@ import path from "path";
 import { responseHandler } from "./utils/responseHandler";
 import router from "./routes";
 
+// --- Tambahan Import Swagger ---
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger";
+
 dotenv.config();
 
 const app = express();
@@ -15,11 +19,15 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Custom Response Handler (dari file yang kamu upload)
+// Custom Response Handler
 app.use(responseHandler);
 
-// Serve Static Images (untuk upload gambar menu)
+// Serve Static Images
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+
+// --- Setup Swagger UI ---
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
 
 // Routes
 app.use("/api", router);

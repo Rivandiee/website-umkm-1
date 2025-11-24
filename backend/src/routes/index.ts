@@ -1,11 +1,10 @@
 import { Router } from "express";
-import adminRoutes from "./admin.routes";
-import customerRoutes from "./customer.routes";
+import adminAuthRoutes from "./admin/auth.routes";
+import adminMenuRoutes from "./admin/menu.routes";
 
 const router = Router();
 
-// Grouping routes
-router.use("/admin", adminRoutes);
-router.use("/customer", customerRoutes);
+router.use("/admin", adminAuthRoutes);
+router.use("/admin", adminMenuRoutes);
 
 export default router;
