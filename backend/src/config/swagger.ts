@@ -33,7 +33,10 @@ const options: swaggerJsdoc.Options = {
     ],
   },
   // Lokasi file yang berisi anotasi swagger
-  apis: ["./src/routes/*.ts"], 
+  apis: [
+  "./src/routes/*.ts",
+  "./src/routes/**/*.ts"
+]
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

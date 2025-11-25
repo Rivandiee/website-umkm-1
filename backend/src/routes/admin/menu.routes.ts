@@ -5,7 +5,7 @@ import { verifyToken } from "../../middlewares/authMiddleware";
 
 const router = Router();
 
-router.use(verifyToken); // Middleware semua menu
+router.use(verifyToken); // Semua route admin menu butuh token
 
 /**
  * @swagger
@@ -35,6 +35,10 @@ router.get("/menus", MenuController.getMenus);
  *         multipart/form-data:
  *           schema:
  *             type: object
+ *             required:
+ *               - name
+ *               - price
+ *               - categoryId
  *             properties:
  *               name:
  *                 type: string
@@ -50,6 +54,8 @@ router.get("/menus", MenuController.getMenus);
  *     responses:
  *       201:
  *         description: Menu berhasil dibuat
+ *       400:
+ *         description: Input tidak valid
  */
 router.post("/menus", upload.single("image"), MenuController.createMenu);
 
@@ -73,6 +79,8 @@ router.post("/menus", upload.single("image"), MenuController.createMenu);
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - status
  *             properties:
  *               status:
  *                 type: boolean

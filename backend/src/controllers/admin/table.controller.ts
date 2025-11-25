@@ -23,3 +23,13 @@ export const createTable = async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Failed to create table" });
   }
 };
+
+export const deleteTable = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await TableService.deleteTable(Number(id));
+    return (res as any).success(null, "Table deleted");
+  } catch (error) {
+    return (res as any).error("Failed to delete table");
+  }
+};

@@ -3,7 +3,8 @@ import bcrypt from "bcrypt";
 
 export class RegisterService {
   static async registerAdmin(data: { username: string; password: string; name: string }) {
-    // 1. Cek apakah username sudah digunakan
+    
+    // 1. Cek apakah username sudah ada
     const existingAdmin = await prisma.admin.findUnique({
       where: { username: data.username }
     });
@@ -12,25 +13,59 @@ export class RegisterService {
       throw new Error("Username already exists");
     }
 
-    // 2. Enkripsi password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(data.password, salt);
+    // 2. Hash password
+    const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    // 3. Simpan admin baru ke database
+    // 3. Buat admin baru
     const newAdmin = await prisma.admin.create({
       data: {
         username: data.username,
         password: hashedPassword,
         name: data.name
+      },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        createdAt: true
       }
     });
 
-    // 4. Kembalikan data (tanpa password)
+    // 4. Ambil semua admin (tanpa password)
+    const allAdmins = await prisma.admin.findMany({
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        createdAt: true
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+
+    // 5. Kembalikan data
     return {
-      id: newAdmin.id,
-      username: newAdmin.username,
-      name: newAdmin.name,
-      createdAt: newAdmin.createdAt
+      message: "Admin registered successfully",
+      newAdmin,
+      allAdmins
     };
   }
+
+  static async getAllAdmins() {
+  const admins = await prisma.admin.findMany({
+    select: {
+      id: true,
+      username: true,
+      name: true,
+      createdAt: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return admins;
+}
+
 }

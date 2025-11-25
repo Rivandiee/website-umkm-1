@@ -1,9 +1,11 @@
-/**
- * @swagger
- * tags:
- *   name: Admin Orders
- *   description: Manajemen pesanan oleh Admin
- */
+import { Router } from "express";
+import * as OrderController from "../../controllers/admin/order.controller";
+import { verifyToken } from "../../middlewares/authMiddleware";
+
+const router = Router();
+
+// Semua route admin order butuh token
+router.use(verifyToken);
 
 /**
  * @swagger
@@ -13,35 +15,24 @@
  *     tags: [Admin Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, PREPARING, DONE, ALL]
+ *         description: Filter berdasarkan status order
  *     responses:
  *       200:
  *         description: List semua order
  */
-
-/**
- * @swagger
- * /admin/orders/{id}:
- *   get:
- *     summary: Mendapatkan detail order
- *     tags: [Admin Orders]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Detail order ditemukan
- */
+router.get("/orders", OrderController.getOrders);
 
 /**
  * @swagger
  * /admin/orders/{id}/status:
  *   patch:
- *     summary: Update status order
+ *     summary: Mengupdate status order
  *     tags: [Admin Orders]
  *     security:
  *       - bearerAuth: []
@@ -51,17 +42,25 @@
  *         required: true
  *         schema:
  *           type: integer
+ *         description: ID order
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - status
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [pending, cooking, done]
+ *                 enum: [PENDING, PREPARING, DONE]
  *     responses:
  *       200:
- *         description: Status diperbarui
+ *         description: Status order berhasil diperbarui
+ *       404:
+ *         description: Order tidak ditemukan
  */
+router.patch("/orders/:id/status", OrderController.updateOrderStatus);
+
+export default router;

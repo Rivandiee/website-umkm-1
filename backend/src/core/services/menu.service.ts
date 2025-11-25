@@ -44,4 +44,17 @@ export class MenuService {
       data: { isAvailable },
     });
   }
+
+  static async deleteMenu(id: number) {
+    return await prisma.menu.delete({
+      where: { id }
+    });
+  }
+
+  static async updateMenu(id: number, data: any) {
+    return await prisma.menu.update({
+      where: { id },
+      data
+    });
+  }
 }

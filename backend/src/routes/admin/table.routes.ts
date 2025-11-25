@@ -1,9 +1,10 @@
-/**
- * @swagger
- * tags:
- *   name: Admin Tables
- *   description: Manajemen meja oleh Admin
- */
+import { Router } from "express";
+import * as TableController from "../../controllers/admin/table.controller";
+import { verifyToken } from "../../middlewares/authMiddleware";
+
+const router = Router();
+
+router.use(verifyToken); // Semua route meja harus login admin
 
 /**
  * @swagger
@@ -16,7 +17,12 @@
  *     responses:
  *       200:
  *         description: List semua meja
- *
+ */
+router.get("/tables", TableController.getTables);
+
+/**
+ * @swagger
+ * /admin/tables:
  *   post:
  *     summary: Membuat meja baru
  *     tags: [Admin Tables]
@@ -30,42 +36,19 @@
  *             type: object
  *             required:
  *               - number
+ *               - location
+ *               - capacity
  *             properties:
  *               number:
  *                 type: integer
- *               status:
+ *               location:
  *                 type: string
- *                 default: available
+ *               capacity:
+ *                 type: integer
  *     responses:
  *       201:
  *         description: Meja berhasil dibuat
  */
+router.post("/tables", TableController.createTable);
 
-/**
- * @swagger
- * /admin/tables/{id}/status:
- *   patch:
- *     summary: Update status meja
- *     tags: [Admin Tables]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [available, reserved, occupied]
- *     responses:
- *       200:
- *         description: Status meja diperbarui
- */
+export default router;

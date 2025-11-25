@@ -22,4 +22,10 @@ export class TableService {
       }
     });
   }
+
+  static async deleteTable(id: number) {
+    return await prisma.table.delete({
+      where: { id }
+    });
+  }
 }
