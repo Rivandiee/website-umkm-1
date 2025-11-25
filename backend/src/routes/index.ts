@@ -4,7 +4,6 @@ import adminMenuRoutes from "./admin/menu.routes";
 import adminOrderRoutes from "./admin/order.routes";
 import adminTableRoutes from "./admin/table.routes";
 import adminCategoryRoutes from "./admin/category.routes";
-import customerRoutes from "./customer.routes";
 
 const router = Router();
 
@@ -16,6 +15,6 @@ router.use("/admin", adminTableRoutes);
 router.use("/admin", adminCategoryRoutes);
 
 // Customer Routes
-router.use("/customer", customerRoutes);
+
 
 export default router;
