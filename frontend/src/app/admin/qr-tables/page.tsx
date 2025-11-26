@@ -81,9 +81,16 @@ export default function AdminQRTablesPage() {
             </div>
 
             {/* QR Code Placeholder - Gunakan library QR code di production */}
-            <div className="bg-gray-100 aspect-square rounded-lg flex items-center justify-center mb-4">
-              <QrCode size={64} className="text-gray-400" />
-              {/* <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${table.qrCode}`} /> */}
+            <div className="bg-gray-100 aspect-square rounded-lg flex items-center justify-center mb-4 overflow-hidden">
+              {table.qrCode ? (
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(table.qrCode)}`} 
+                  alt={`QR Meja ${table.number}`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <QrCode size={64} className="text-gray-400" />
+              )}
             </div>
 
             <div className="flex justify-between items-center text-sm text-gray-600">

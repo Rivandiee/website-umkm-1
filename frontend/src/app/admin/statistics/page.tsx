@@ -1,251 +1,138 @@
 // frontend/src/app/admin/statistics/page.tsx
-
 "use client";
 
 import { useState, useEffect } from "react";
+import api from "../../../lib/axios"; // Import API
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  Cell
+  LineChart, Line, BarChart, Bar, PieChart, Pie, AreaChart, Area,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
 } from "recharts";
-import { TrendingUp, DollarSign, ShoppingCart, Users } from "lucide-react";
+import { TrendingUp, DollarSign, ShoppingCart, Users, Loader2 } from "lucide-react";
 
-// Komponen Kartu Statistik
-function StatCard({ 
-  title, 
-  value, 
-  change, 
-  icon: Icon,
-  trend 
-}: { 
-  title: string; 
-  value: string | number; 
-  change: string;
-  icon: any;
-  trend: 'up' | 'down';
-}) {
+function StatCard({ title, value, icon: Icon, color }: any) {
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className={`p-3 rounded-lg ${trend === 'up' ? 'bg-green-100' : 'bg-red-100'}`}>
-          <Icon size={24} className={trend === 'up' ? 'text-green-600' : 'text-red-600'} />
-        </div>
-        <span className={`text-sm font-semibold ${trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-          {change}
-        </span>
+    <div className="bg-white rounded-xl shadow p-6 flex items-center gap-4 border border-gray-100">
+      <div className={`p-4 rounded-full ${color} bg-opacity-10`}>
+        <Icon size={28} className={color.replace("bg-", "text-")} />
       </div>
-      <h3 className="text-gray-600 text-sm mb-1">{title}</h3>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
+      <div>
+        <p className="text-gray-500 text-sm">{title}</p>
+        <h3 className="text-2xl font-bold text-gray-800">{value}</h3>
+      </div>
     </div>
   );
 }
 
 export default function StatisticsPage() {
-  // Data untuk chart pendapatan mingguan
-  const revenueData = [
-    { day: 'Sen', pendapatan: 2400000 },
-    { day: 'Sel', pendapatan: 2800000 },
-    { day: 'Rab', pendapatan: 3200000 },
-    { day: 'Kam', pendapatan: 2900000 },
-    { day: 'Jum', pendapatan: 4100000 },
-    { day: 'Sab', pendapatan: 5200000 },
-    { day: 'Min', pendapatan: 4800000 },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState<any>({});
+  const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [ordersData, setOrdersData] = useState<any[]>([]);
+  const [menuData, setMenuData] = useState<any[]>([]);
 
-  // Data untuk chart pesanan bulanan
-  const ordersData = [
-    { bulan: 'Jan', pesanan: 320 },
-    { bulan: 'Feb', pesanan: 380 },
-    { bulan: 'Mar', pesanan: 420 },
-    { bulan: 'Apr', pesanan: 390 },
-    { bulan: 'Mei', pesanan: 450 },
-    { bulan: 'Jun', pesanan: 520 },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await api.get("/admin/analytics/dashboard");
+        const { summary, charts } = res.data.data;
 
-  // Data untuk pie chart menu terpopuler
-  const menuData = [
-    { name: 'Nasi Goreng', value: 450, color: '#3B82F6' },
-    { name: 'Mie Goreng', value: 320, color: '#10B981' },
-    { name: 'Ayam Bakar', value: 280, color: '#F59E0B' },
-    { name: 'Sate Ayam', value: 210, color: '#EF4444' },
-    { name: 'Lainnya', value: 190, color: '#8B5CF6' },
-  ];
+        setSummary(summary);
+        setRevenueData(charts.revenue);
+        setOrdersData(charts.orders);
+        setMenuData(charts.menu);
+      } catch (error) {
+        console.error("Failed to fetch analytics", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Data untuk area chart traffic harian
-  const trafficData = [
-    { jam: '08:00', pengunjung: 12 },
-    { jam: '10:00', pengunjung: 28 },
-    { jam: '12:00', pengunjung: 65 },
-    { jam: '14:00', pengunjung: 45 },
-    { jam: '16:00', pengunjung: 38 },
-    { jam: '18:00', pengunjung: 82 },
-    { jam: '20:00', pengunjung: 95 },
-    { jam: '22:00', pengunjung: 42 },
-  ];
+    fetchData();
+  }, []);
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={40} /></div>;
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6 text-gray-900">Statistik & Analytics</h1>
       
-      {/* Kartu Statistik Overview */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard
-          title="Total Pendapatan"
-          value="Rp 25.5 Jt"
-          change="+12.5%"
-          icon={DollarSign}
-          trend="up"
-        />
-        <StatCard
-          title="Total Pesanan"
-          value="2,345"
-          change="+8.2%"
-          icon={ShoppingCart}
-          trend="up"
-        />
-        <StatCard
-          title="Pelanggan Aktif"
-          value="1,234"
-          change="+15.3%"
-          icon={Users}
-          trend="up"
-        />
-        <StatCard
-          title="Rata-rata Nilai Pesanan"
-          value="Rp 125K"
-          change="-2.1%"
-          icon={TrendingUp}
-          trend="down"
-        />
+        <StatCard title="Total Pendapatan" value={`Rp ${summary.totalRevenue?.toLocaleString('id-ID')}`} icon={DollarSign} color="text-green-600" />
+        <StatCard title="Total Pesanan" value={summary.totalOrders} icon={ShoppingCart} color="text-blue-600" />
+        <StatCard title="Pelanggan" value={summary.totalCustomers} icon={Users} color="text-purple-600" />
+        <StatCard title="Rata-rata Order" value={`Rp ${summary.avgOrderValue?.toLocaleString('id-ID')}`} icon={TrendingUp} color="text-orange-600" />
       </div>
 
-      {/* Chart Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         
-        {/* Line Chart - Pendapatan Mingguan */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4 text-gray-900">Pendapatan Mingguan</h2>
+        {/* Revenue Chart */}
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h3 className="text-lg font-bold mb-4">Pendapatan Mingguan</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={revenueData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="day" />
               <YAxis />
-              <Tooltip 
-                formatter={(value) => `Rp ${Number(value).toLocaleString('id-ID')}`}
-              />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="pendapatan" 
-                stroke="#3B82F6" 
-                strokeWidth={2}
-                name="Pendapatan"
-              />
+              <Tooltip formatter={(value: number) => `Rp ${value.toLocaleString('id-ID')}`} />
+              <Line type="monotone" dataKey="pendapatan" stroke="#10B981" strokeWidth={3} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Bar Chart - Pesanan Bulanan */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4 text-gray-900">Pesanan Bulanan</h2>
+        {/* Monthly Orders */}
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h3 className="text-lg font-bold mb-4">Pesanan Bulanan</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={ordersData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="bulan" />
               <YAxis />
               <Tooltip />
-              <Legend />
-              <Bar dataKey="pesanan" fill="#10B981" name="Jumlah Pesanan" />
+              <Bar dataKey="pesanan" fill="#3B82F6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Pie Chart - Menu Terpopuler */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4 text-gray-900">Menu Terpopuler</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={menuData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {menuData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Area Chart - Traffic Harian */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4 text-gray-900">Traffic Pengunjung Harian</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={trafficData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="jam" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Area 
-                type="monotone" 
-                dataKey="pengunjung" 
-                stroke="#F59E0B" 
-                fill="#FCD34D"
-                name="Pengunjung"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-      </div>
-
-      {/* Tabel Top Menu */}
-      <div className="mt-8 bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold mb-4 text-gray-900">Top 5 Menu Minggu Ini</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-3 px-4 text-gray-600">Ranking</th>
-                <th className="text-left py-3 px-4 text-gray-600">Nama Menu</th>
-                <th className="text-left py-3 px-4 text-gray-600">Terjual</th>
-                <th className="text-left py-3 px-4 text-gray-600">Pendapatan</th>
-              </tr>
-            </thead>
-            <tbody>
+        {/* Top Menu */}
+        <div className="bg-white p-6 rounded-xl shadow lg:col-span-2">
+          <h3 className="text-lg font-bold mb-4">5 Menu Terpopuler</h3>
+          <div className="flex flex-col md:flex-row gap-8 items-center">
+            <div className="w-full md:w-1/2 h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={menuData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {menuData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="w-full md:w-1/2 space-y-4">
               {menuData.map((item, index) => (
-                <tr key={index} className="border-b hover:bg-gray-50">
-                  <td className="py-3 px-4">#{index + 1}</td>
-                  <td className="py-3 px-4 font-medium">{item.name}</td>
-                  <td className="py-3 px-4">{item.value} porsi</td>
-                  <td className="py-3 px-4 text-green-600 font-semibold">
-                    Rp {(item.value * 25000).toLocaleString('id-ID')}
-                  </td>
-                </tr>
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }}></div>
+                    <span className="font-medium">{item.name}</span>
+                  </div>
+                  <span className="font-bold text-gray-600">{item.value} Terjual</span>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </div>
         </div>
+
       </div>
     </div>
   );

@@ -1,7 +1,9 @@
+// frontend/src/app/admin/orders/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import api from "../../../lib/axios"; // Import API Helper
 import { 
   CheckCircle, 
   Clock, 
@@ -20,12 +22,13 @@ import {
   Download,
   Layers,
   QrCode,
-  Wallet
+  Wallet,
+  Loader2
 } from "lucide-react";
 
 type OrderStatus = "PENDING" | "PREPARING" | "DONE" | "CANCELLED";
 type FilterTab = "ALL" | OrderStatus;
-type PaymentMethod = "CASH" | "QR";
+type PaymentMethod = "CASH" | "NONCASH" | "QR"; // Sesuaikan dengan backend/frontend mapping
 
 interface OrderItem {
   name: string;
@@ -47,95 +50,75 @@ interface Order {
 }
 
 export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: 101,
-      customerName: "Budi Santoso",
-      tableNumber: 5,
-      totalPrice: 45000,
-      status: "PENDING",
-      paymentMethod: "CASH",
-      items: [
-        { name: "Nasi Goreng Spesial", qty: 1, price: 25000 },
-        { name: "Es Teh Manis", qty: 2, price: 5000 },
-        { name: "Ayam Goreng", qty: 1, price: 15000 },
-      ],
-      createdAt: "2025-11-17T17:30:00",
-      updatedAt: "2025-11-17T17:30:00",
-    },
-    {
-      id: 102,
-      customerName: "Ayu Lestari",
-      tableNumber: 12,
-      totalPrice: 20000,
-      status: "PREPARING",
-      paymentMethod: "QR",
-      items: [{ name: "Ayam Geprek Sambal", qty: 1, price: 20000 }],
-      createdAt: "2025-11-17T17:25:00",
-      updatedAt: "2025-11-17T17:28:00",
-    },
-    {
-      id: 103,
-      customerName: "Dedi Kusuma",
-      tableNumber: 1,
-      totalPrice: 75000,
-      status: "DONE",
-      paymentMethod: "CASH",
-      items: [
-        { name: "Sate Ayam", qty: 2, price: 30000 },
-        { name: "Air Mineral", qty: 3, price: 5000 },
-      ],
-      createdAt: "2025-11-17T17:15:00",
-      updatedAt: "2025-11-17T17:40:00",
-    },
-    {
-      id: 104,
-      customerName: "Siti Nurhaliza",
-      tableNumber: 8,
-      totalPrice: 35000,
-      status: "PENDING",
-      paymentMethod: "QR",
-      items: [
-        { name: "Mie Goreng", qty: 1, price: 20000 },
-        { name: "Jus Jeruk", qty: 1, price: 15000 },
-      ],
-      createdAt: "2025-11-17T17:35:00",
-      updatedAt: "2025-11-17T17:35:00",
-    },
-    {
-      id: 105,
-      customerName: "Andi Wijaya",
-      tableNumber: 3,
-      totalPrice: 50000,
-      status: "PREPARING",
-      paymentMethod: "CASH",
-      items: [
-        { name: "Nasi Goreng", qty: 1, price: 25000 },
-        { name: "Ayam Bakar", qty: 1, price: 25000 },
-      ],
-      createdAt: "2025-11-17T17:20:00",
-      updatedAt: "2025-11-17T17:32:00",
-    },
-    {
-      id: 106,
-      customerName: "Rina Putri",
-      tableNumber: 7,
-      totalPrice: 60000,
-      status: "DONE",
-      paymentMethod: "QR",
-      items: [
-        { name: "Soto Ayam", qty: 2, price: 30000 },
-      ],
-      createdAt: "2025-11-17T17:10:00",
-      updatedAt: "2025-11-17T17:35:00",
-    },
-  ]);
-
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterTab>("ALL");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [newOrderAlert, setNewOrderAlert] = useState(false);
+
+  // --- Fetch Orders from API ---
+  const fetchOrders = useCallback(async () => {
+    try {
+      // const res = await api.get("/admin/orders"); // Fetch semua
+      // Atau jika ingin filter di server: api.get(`/admin/orders?status=${activeFilter}`)
+      // Kita fetch semua dulu untuk client-side filtering yang responsif
+      const res = await api.get("/admin/orders");
+      
+      // Transform data dari Backend ke struktur Frontend
+      const mappedOrders = res.data.map((o: any) => ({
+        id: o.id,
+        customerName: o.customerName || "Guest",
+        tableNumber: o.table?.number || 0,
+        totalPrice: o.totalPrice,
+        status: o.status,
+        paymentMethod: o.paymentMethod,
+        items: o.items.map((i: any) => ({
+          name: i.menu?.name || "Unknown Item",
+          qty: i.qty,
+          price: i.price,
+          note: i.note
+        })),
+        createdAt: o.createdAt,
+        updatedAt: o.updatedAt,
+      }));
+
+      setOrders(mappedOrders);
+    } catch (error) {
+      console.error("Gagal mengambil pesanan:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Initial Load & Auto Refresh (Polling sederhana setiap 10 detik)
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 10000);
+    return () => clearInterval(interval);
+  }, [fetchOrders]);
+
+  // --- Update Order Status ---
+  const handleUpdateStatus = async (id: number, newStatus: OrderStatus) => {
+    try {
+      // Optimistic Update
+      setOrders((prev) => prev.map(o => o.id === id ? { ...o, status: newStatus, updatedAt: new Date().toISOString() } : o));
+      
+      // Call API
+      await api.patch(`/admin/orders/${id}/status`, { status: newStatus });
+      
+      setNewOrderAlert(true);
+      setTimeout(() => setNewOrderAlert(false), 3000);
+      
+      // Refresh data untuk memastikan sinkron
+      fetchOrders();
+    } catch (error) {
+      console.error("Gagal update status:", error);
+      alert("Gagal mengupdate status pesanan");
+      fetchOrders(); // Revert jika gagal
+    }
+  };
 
   // Filter tabs configuration
   const filterTabs: Array<{
@@ -149,12 +132,12 @@ export default function AdminOrdersPage() {
   }> = [
     {
       id: "ALL",
-      label: "Semua",
+      label: "Aktif", // Ubah label agar lebih akurat
       icon: Layers,
       color: "text-gray-700",
       bgColor: "bg-gray-100",
       borderColor: "border-gray-300",
-      description: "Semua pesanan",
+      description: "Menunggu & Diproses",
     },
     {
       id: "PENDING",
@@ -163,7 +146,7 @@ export default function AdminOrdersPage() {
       color: "text-yellow-700",
       bgColor: "bg-yellow-100",
       borderColor: "border-yellow-300",
-      description: "Pesanan baru menunggu",
+      description: "Pesanan baru masuk",
     },
     {
       id: "PREPARING",
@@ -172,7 +155,7 @@ export default function AdminOrdersPage() {
       color: "text-blue-700",
       bgColor: "bg-blue-100",
       borderColor: "border-blue-300",
-      description: "Sedang dikerjakan",
+      description: "Sedang dimasak",
     },
     {
       id: "DONE",
@@ -181,26 +164,26 @@ export default function AdminOrdersPage() {
       color: "text-green-700",
       bgColor: "bg-green-100",
       borderColor: "border-green-300",
-      description: "Pesanan selesai",
+      description: "Sudah diantar",
     },
   ];
 
   // Helper functions for payment method
-  const getPaymentBadge = (method: PaymentMethod) => {
+  const getPaymentBadge = (method: string) => {
     return method === "CASH"
       ? "bg-green-50 text-green-700 border-green-300"
       : "bg-purple-50 text-purple-700 border-purple-300";
   };
 
-  const getPaymentIcon = (method: PaymentMethod) => {
+  const getPaymentIcon = (method: string) => {
     return method === "CASH" ? <Wallet size={16} /> : <QrCode size={16} />;
   };
 
-  const getPaymentLabel = (method: PaymentMethod) => {
-    return method === "CASH" ? "Tunai" : "QR Code";
+  const getPaymentLabel = (method: string) => {
+    return method === "CASH" ? "Tunai" : "QRIS";
   };
 
-  // Filter orders based on active tab and search query
+  // Filter Logic
   const getFilteredOrders = () => {
     let filtered = orders;
 
@@ -208,8 +191,8 @@ export default function AdminOrdersPage() {
     if (activeFilter !== "ALL") {
       filtered = filtered.filter((order) => order.status === activeFilter);
     } else {
-      // Ketika filter "ALL", hanya tampilkan PENDING dan PREPARING, exclude DONE
-      filtered = filtered.filter((order) => order.status === "PENDING" || order.status === "PREPARING");
+      // Default "ALL" (Active) = PENDING + PREPARING
+      filtered = filtered.filter((order) => ["PENDING", "PREPARING"].includes(order.status));
     }
 
     // Filter by search query
@@ -222,101 +205,68 @@ export default function AdminOrdersPage() {
       );
     }
 
-    return filtered;
-  };
-
-  // Group filtered orders by status for kanban view
-  const getOrdersByStatus = (status: OrderStatus) => {
-    return orders.filter((order) => order.status === status);
+    // Sort: PENDING paling atas, lalu berdasarkan waktu terbaru
+    return filtered.sort((a, b) => {
+        if (a.status === b.status) {
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+        return a.status === 'PENDING' ? -1 : 1;
+    });
   };
 
   const filteredOrders = getFilteredOrders();
-  const pendingOrders = getOrdersByStatus("PENDING");
-  const preparingOrders = getOrdersByStatus("PREPARING");
-  const doneOrders = getOrdersByStatus("DONE");
+  const pendingOrders = orders.filter((o) => o.status === "PENDING");
+  const preparingOrders = orders.filter((o) => o.status === "PREPARING");
 
   // Statistics
   const stats = {
     total: orders.length,
-    pending: orders.filter((o) => o.status === "PENDING").length,
-    preparing: orders.filter((o) => o.status === "PREPARING").length,
+    pending: pendingOrders.length,
+    preparing: preparingOrders.length,
     done: orders.filter((o) => o.status === "DONE").length,
     totalRevenue: orders
       .filter((o) => o.status === "DONE")
       .reduce((sum, o) => sum + o.totalPrice, 0),
   };
 
-  // Get count for each filter tab
   const getTabCount = (tabId: FilterTab) => {
-    if (tabId === "ALL") {
-      // Untuk ALL, hitung hanya PENDING dan PREPARING
-      return orders.filter(o => o.status === "PENDING" || o.status === "PREPARING").length;
-    }
+    if (tabId === "ALL") return pendingOrders.length + preparingOrders.length;
     return orders.filter(o => o.status === tabId).length;
   };
 
-  // Get status badge color
+  // Formatters
+  const formatTime = (dateString: string) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  };
+
   const getStatusBadge = (status: OrderStatus) => {
     switch (status) {
-      case "PENDING":
-        return "bg-yellow-100 text-yellow-700 border-yellow-300";
-      case "PREPARING":
-        return "bg-blue-100 text-blue-700 border-blue-300";
-      case "DONE":
-        return "bg-green-100 text-green-700 border-green-300";
-      case "CANCELLED":
-        return "bg-red-100 text-red-700 border-red-300";
+      case "PENDING": return "bg-yellow-100 text-yellow-700 border-yellow-300";
+      case "PREPARING": return "bg-blue-100 text-blue-700 border-blue-300";
+      case "DONE": return "bg-green-100 text-green-700 border-green-300";
+      case "CANCELLED": return "bg-red-100 text-red-700 border-red-300";
+      default: return "bg-gray-100";
     }
   };
 
   const getStatusIcon = (status: OrderStatus) => {
     switch (status) {
-      case "PENDING":
-        return <Clock size={16} />;
-      case "PREPARING":
-        return <UtensilsCrossed size={16} />;
-      case "DONE":
-        return <CheckCircle size={16} />;
-      case "CANCELLED":
-        return <X size={16} />;
+      case "PENDING": return <Clock size={16} />;
+      case "PREPARING": return <UtensilsCrossed size={16} />;
+      case "DONE": return <CheckCircle size={16} />;
+      case "CANCELLED": return <X size={16} />;
+      default: return <Clock size={16} />;
     }
   };
 
-  const updateOrderStatus = (id: number, newStatus: OrderStatus) => {
-    setOrders((prevOrders) =>
-      prevOrders.map((order) =>
-        order.id === id
-          ? { ...order, status: newStatus, updatedAt: new Date().toISOString() }
-          : order
-      )
-    );
-    setNewOrderAlert(true);
-    setTimeout(() => setNewOrderAlert(false), 3000);
-  };
+  // --- Components ---
 
-  const viewDetails = (order: Order) => {
-    setSelectedOrder(order);
-    setShowDetailModal(true);
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("id-ID", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  // Wide Order Card Component (for filtered view) - Horizontal Layout
   const WideOrderCard = ({ order }: { order: Order }) => (
     <motion.div
       layout
@@ -326,35 +276,24 @@ export default function AdminOrdersPage() {
       className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all overflow-hidden border-l-4"
       style={{
         borderLeftColor:
-          order.status === "PENDING"
-            ? "#EAB308"
-            : order.status === "PREPARING"
-            ? "#3B82F6"
-            : "#10B981",
+          order.status === "PENDING" ? "#EAB308" : 
+          order.status === "PREPARING" ? "#3B82F6" : 
+          order.status === "DONE" ? "#10B981" : "#EF4444",
       }}
     >
       <div className="flex flex-col md:flex-row h-full">
-        {/* Left Section - Order Info (70%) */}
         <div className="flex-1 p-6 space-y-4">
-          {/* Header with Status Badge */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 flex-wrap">
-              <span
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1 ${getStatusBadge(
-                  order.status
-                )}`}
-              >
+              <span className={`px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1 ${getStatusBadge(order.status)}`}>
                 {getStatusIcon(order.status)}
                 {order.status}
               </span>
-              {/* Payment Method Badge */}
               <span className={`px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1 ${getPaymentBadge(order.paymentMethod)}`}>
                 {getPaymentIcon(order.paymentMethod)}
                 {getPaymentLabel(order.paymentMethod)}
               </span>
-              <span className="text-sm font-bold text-gray-500">
-                Order #{order.id}
-              </span>
+              <span className="text-sm font-bold text-gray-500">Order #{order.id}</span>
               <span className="text-sm text-gray-500 flex items-center gap-1">
                 <Calendar size={14} />
                 {formatTime(order.createdAt)}
@@ -362,262 +301,74 @@ export default function AdminOrdersPage() {
             </div>
           </div>
 
-          {/* Customer Info with Avatar */}
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">
-              {order.customerName.charAt(0)}
+              {order.customerName.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-800">
-                {order.customerName}
-              </h3>
+              <h3 className="text-xl font-bold text-gray-800">{order.customerName}</h3>
               <p className="text-gray-600 flex items-center gap-2 text-sm">
-                <Users size={16} />
-                Meja {order.tableNumber}
+                <Users size={16} /> Meja {order.tableNumber}
               </p>
             </div>
           </div>
 
-          {/* Order Items in Grid */}
           <div className="bg-gray-50 rounded-lg p-4">
             <p className="text-sm text-gray-600 font-semibold mb-3 flex items-center gap-2">
-              <ClipboardList size={16} />
-              {order.items.length} Item Pesanan:
+              <ClipboardList size={16} /> {order.items.length} Item Pesanan:
             </p>
             <div className="space-y-2">
               {order.items.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="flex justify-between items-center bg-white px-3 py-2 rounded-lg"
-                >
-                  <span className="text-sm text-gray-700 font-medium">
-                    {item.name}
-                  </span>
+                <div key={idx} className="flex justify-between items-center bg-white px-3 py-2 rounded-lg">
+                  <span className="text-sm text-gray-700 font-medium">{item.name}</span>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-600">
-                      x{item.qty}
-                    </span>
-                    <span className="text-sm font-semibold text-gray-900">
-                      Rp {(item.price * item.qty).toLocaleString("id-ID")}
-                    </span>
+                    <span className="text-sm text-gray-600">x{item.qty}</span>
+                    {item.note && <span className="text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded">Note: {item.note}</span>}
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Total Price */}
           <div className="flex items-center justify-between pt-4 border-t border-gray-200">
             <div>
               <p className="text-sm text-gray-600 mb-1">Total Pembayaran</p>
-              <p className="text-3xl font-extrabold text-blue-600">
-                Rp {order.totalPrice.toLocaleString("id-ID")}
-              </p>
+              <p className="text-3xl font-extrabold text-blue-600">Rp {order.totalPrice.toLocaleString("id-ID")}</p>
             </div>
-            <button
-              onClick={() => viewDetails(order)}
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold transition px-4 py-2 rounded-lg hover:bg-blue-50"
-            >
-              <Eye size={18} />
-              Detail Lengkap
+            <button onClick={() => { setSelectedOrder(order); setShowDetailModal(true); }} className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold transition px-4 py-2 rounded-lg hover:bg-blue-50">
+              <Eye size={18} /> Detail
             </button>
           </div>
         </div>
 
-        {/* Right Section - Actions (30%) */}
         <div className="w-full md:w-64 bg-gray-50 p-6 flex flex-col justify-center gap-3 border-t md:border-t-0 md:border-l">
-          <div className="text-center mb-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">
-              Aksi Pesanan
-            </p>
-            <div className="h-1 w-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full mx-auto"></div>
-          </div>
-
           {order.status === "PENDING" && (
             <>
-              <button
-                onClick={() => updateOrderStatus(order.id, "PREPARING")}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-semibold transition shadow-md hover:shadow-lg"
-              >
-                <UtensilsCrossed size={18} />
-                Proses Pesanan
+              <button onClick={() => handleUpdateStatus(order.id, "PREPARING")} className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-semibold transition shadow-md">
+                <UtensilsCrossed size={18} /> Proses
               </button>
-              <button
-                onClick={() => updateOrderStatus(order.id, "CANCELLED")}
-                className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 py-3.5 rounded-xl font-semibold transition border border-red-200"
-              >
-                <X size={18} />
-                Batalkan Pesanan
+              <button onClick={() => handleUpdateStatus(order.id, "CANCELLED")} className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 py-3.5 rounded-xl font-semibold transition border border-red-200">
+                <X size={18} /> Tolak
               </button>
             </>
           )}
-
           {order.status === "PREPARING" && (
-            <>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2">
-                <div className="flex items-center gap-2 text-blue-700 mb-2">
-                  <UtensilsCrossed size={16} />
-                  <span className="text-xs font-semibold">SEDANG DIPROSES</span>
-                </div>
-                <p className="text-xs text-blue-600">
-                  Pesanan sedang disiapkan di dapur
-                </p>
-              </div>
-              <button
-                onClick={() => updateOrderStatus(order.id, "DONE")}
-                className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-xl font-semibold transition shadow-md hover:shadow-lg"
-              >
-                <CheckCircle size={18} />
-                Tandai Selesai
-              </button>
-            </>
+            <button onClick={() => handleUpdateStatus(order.id, "DONE")} className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-xl font-semibold transition shadow-md">
+              <CheckCircle size={18} /> Selesai
+            </button>
           )}
-
           {order.status === "DONE" && (
-            <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6 text-center">
-              <CheckCircle size={40} className="text-green-600 mx-auto mb-3" />
-              <p className="text-green-700 font-bold text-sm">
-                Pesanan Selesai
-              </p>
-              <p className="text-green-600 text-xs mt-2">
-                {formatTime(order.updatedAt)}
-              </p>
-            </div>
+             <div className="text-center text-green-600 font-bold p-4 bg-green-100 rounded-xl">Selesai</div>
           )}
-
-          {/* Additional Info */}
-          <div className="mt-auto pt-4 border-t border-gray-200">
-            <div className="text-xs text-gray-500 space-y-2">
-              <div className="flex items-center gap-2">
-                <Clock size={12} />
-                <span>Dibuat: {formatTime(order.createdAt)}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar size={12} />
-                <span>Update: {formatTime(order.updatedAt)}</span>
-              </div>
-            </div>
-          </div>
+          {order.status === "CANCELLED" && (
+             <div className="text-center text-red-600 font-bold p-4 bg-red-100 rounded-xl">Dibatalkan</div>
+          )}
         </div>
       </div>
     </motion.div>
   );
 
-  // Compact Order Card Component (for kanban columns)
-  const CompactOrderCard = ({ order }: { order: Order }) => (
-    <motion.div
-      layout
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-4 cursor-pointer border border-gray-100"
-      onClick={() => viewDetails(order)}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-gray-500">#{order.id}</span>
-          <span className={`px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1 ${getPaymentBadge(order.paymentMethod)}`}>
-            {getPaymentIcon(order.paymentMethod)}
-          </span>
-        </div>
-        <span className="text-xs text-gray-500 flex items-center gap-1">
-          <Clock size={12} />
-          {formatTime(order.createdAt)}
-        </span>
-      </div>
-
-      <div className="mb-3">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-            {order.customerName.charAt(0)}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-gray-800 truncate text-sm">
-              {order.customerName}
-            </h3>
-            <p className="text-xs text-gray-600">Meja {order.tableNumber}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-gray-50 rounded-lg p-3 mb-3">
-        <p className="text-xs text-gray-600 font-semibold mb-2">
-          {order.items.length} Item:
-        </p>
-        <ul className="space-y-1">
-          {order.items.slice(0, 2).map((item, idx) => (
-            <li key={idx} className="text-xs text-gray-700 flex justify-between">
-              <span className="truncate flex-1">• {item.name}</span>
-              <span className="font-medium ml-2">x{item.qty}</span>
-            </li>
-          ))}
-          {order.items.length > 2 && (
-            <li className="text-xs text-blue-600 font-medium">
-              +{order.items.length - 2} lainnya
-            </li>
-          )}
-        </ul>
-      </div>
-
-      <div className="mb-3 pt-3 border-t border-gray-200">
-        <div className="flex justify-between items-center">
-          <span className="text-xs text-gray-600">Total:</span>
-          <span className="text-base font-bold text-blue-600">
-            Rp {order.totalPrice.toLocaleString("id-ID")}
-          </span>
-        </div>
-      </div>
-
-      <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-        {order.status === "PENDING" && (
-          <>
-            <button
-              onClick={() => updateOrderStatus(order.id, "PREPARING")}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold text-sm transition"
-            >
-              <UtensilsCrossed size={16} /> Proses
-            </button>
-            <button
-              onClick={() => updateOrderStatus(order.id, "CANCELLED")}
-              className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-lg font-semibold text-sm transition"
-            >
-              <X size={16} /> Batalkan
-            </button>
-          </>
-        )}
-
-        {order.status === "PREPARING" && (
-          <button
-            onClick={() => updateOrderStatus(order.id, "DONE")}
-            className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-semibold text-sm transition"
-          >
-            <CheckCircle size={16} /> Selesai
-          </button>
-        )}
-
-        {order.status === "DONE" && (
-          <div className="text-center py-2 bg-green-50 text-green-700 rounded-lg text-sm font-semibold flex items-center justify-center gap-2">
-            <CheckCircle size={16} /> Selesai
-          </div>
-        )}
-      </div>
-    </motion.div>
-  );
-
-  // Column Component
-  const OrderColumn = ({
-    title,
-    icon: Icon,
-    count,
-    orders,
-    color,
-  }: {
-    title: string;
-    icon: any;
-    count: number;
-    orders: Order[];
-    color: string;
-  }) => (
+  const OrderColumn = ({ title, icon: Icon, count, orders, color }: any) => (
     <div className="flex-1 min-w-[300px]">
       <div className={`rounded-xl p-4 mb-4 ${color}`}>
         <div className="flex items-center justify-between">
@@ -625,485 +376,146 @@ export default function AdminOrdersPage() {
             <Icon size={20} />
             <h2 className="font-bold text-lg">{title}</h2>
           </div>
-          <span className="bg-white bg-opacity-80 px-3 py-1 rounded-full text-sm font-bold">
-            {count}
-          </span>
+          <span className="bg-white bg-opacity-80 px-3 py-1 rounded-full text-sm font-bold">{count}</span>
         </div>
       </div>
-      <div className="space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-        <AnimatePresence>
-          {orders.length === 0 ? (
-            <div className="bg-gray-50 rounded-xl p-8 text-center">
-              <p className="text-gray-400 text-sm">Tidak ada pesanan</p>
+      <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto pr-2 scrollbar-thin">
+        {orders.length === 0 ? (
+          <div className="bg-gray-50 rounded-xl p-8 text-center text-gray-400 text-sm">Kosong</div>
+        ) : (
+          orders.map((order: Order) => (
+            <div key={order.id} className="bg-white p-4 rounded-xl shadow border hover:shadow-md cursor-pointer" onClick={() => { setSelectedOrder(order); setShowDetailModal(true); }}>
+               <div className="flex justify-between mb-2">
+                 <span className="font-bold text-sm">#{order.id} - {order.customerName}</span>
+                 <span className="text-xs text-gray-500">{formatTime(order.createdAt)}</span>
+               </div>
+               <div className="text-xs text-gray-600 mb-2">Meja {order.tableNumber} • {order.items.length} Items</div>
+               <div className="flex gap-2">
+                 {order.status === 'PENDING' && (
+                    <button onClick={(e) => { e.stopPropagation(); handleUpdateStatus(order.id, "PREPARING"); }} className="flex-1 bg-blue-600 text-white text-xs py-2 rounded">Proses</button>
+                 )}
+                 {order.status === 'PREPARING' && (
+                    <button onClick={(e) => { e.stopPropagation(); handleUpdateStatus(order.id, "DONE"); }} className="flex-1 bg-green-600 text-white text-xs py-2 rounded">Selesai</button>
+                 )}
+               </div>
             </div>
-          ) : (
-            orders.map((order) => <CompactOrderCard key={order.id} order={order} />)
-          )}
-        </AnimatePresence>
+          ))
+        )}
       </div>
     </div>
   );
 
-  // Determine if we should show single column or kanban view
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={40} /></div>;
+
   const showSingleColumn = activeFilter !== "ALL" || searchQuery !== "";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Manajemen Pesanan</h1>
-          <p className="text-gray-600 mt-1">Monitor dan kelola semua pesanan real-time</p>
+          <p className="text-gray-600">Real-time monitoring</p>
         </div>
-        <button className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-5 rounded-xl transition-all">
-          <Download size={20} /> Ekspor Data
+        <button onClick={() => fetchOrders()} className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-semibold">
+          Refresh Data
         </button>
       </div>
 
-      {/* Alert */}
-      <AnimatePresence>
-        {newOrderAlert && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2"
-          >
-            <Bell size={20} />
-            <span className="font-medium">Status pesanan berhasil diperbarui!</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <div className="bg-white rounded-xl shadow-md p-5 border-l-4 border-blue-500">
-          <div className="flex items-center justify-between mb-2">
-            <ShoppingCart className="text-blue-500" size={24} />
-            <TrendingUp className="text-green-500" size={16} />
-          </div>
-          <p className="text-gray-600 text-sm">Total Pesanan</p>
-          <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+      {newOrderAlert && (
+        <div className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
+          Status pesanan berhasil diperbarui!
         </div>
+      )}
 
-        <div className="bg-white rounded-xl shadow-md p-5 border-l-4 border-yellow-500">
-          <div className="flex items-center justify-between mb-2">
-            <Clock className="text-yellow-500" size={24} />
-          </div>
-          <p className="text-gray-600 text-sm">Menunggu</p>
-          <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md p-5 border-l-4 border-blue-500">
-          <div className="flex items-center justify-between mb-2">
-            <UtensilsCrossed className="text-blue-500" size={24} />
-          </div>
-          <p className="text-gray-600 text-sm">Diproses</p>
-          <p className="text-2xl font-bold text-blue-600">{stats.preparing}</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md p-5 border-l-4 border-green-500">
-          <div className="flex items-center justify-between mb-2">
-            <CheckCircle className="text-green-500" size={24} />
-          </div>
-          <p className="text-gray-600 text-sm">Selesai</p>
-          <p className="text-2xl font-bold text-green-600">{stats.done}</p>
-        </div>
-
-        <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-md p-5 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <DollarSign size={24} />
-          </div>
-          <p className="text-blue-100 text-sm">Pendapatan Hari Ini</p>
-          <p className="text-2xl font-bold">
-            Rp {stats.totalRevenue.toLocaleString("id-ID")}
-          </p>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        {filterTabs.map((tab) => (
+           <button
+             key={tab.id}
+             onClick={() => setActiveFilter(tab.id)}
+             className={`p-4 rounded-xl text-left border-2 transition-all ${activeFilter === tab.id ? `${tab.bgColor} ${tab.borderColor} shadow-md` : 'bg-white border-gray-200'}`}
+           >
+             <div className="flex justify-between items-center mb-2">
+               <tab.icon className={tab.color} />
+               <span className="text-2xl font-bold">{getTabCount(tab.id)}</span>
+             </div>
+             <div className={`font-semibold ${tab.color}`}>{tab.label}</div>
+           </button>
+        ))}
       </div>
 
-      {/* Filter Section - 4 Column Horizontal Layout */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-        {/* Main Filter Tabs - 4 Columns Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {filterTabs.slice(1).map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeFilter === tab.id;
-            const count = getTabCount(tab.id);
-
-            return (
-              <motion.button
-                key={tab.id}
-                onClick={() => setActiveFilter(tab.id)}
-                className={`relative overflow-hidden rounded-xl p-5 text-left transition-all ${
-                  isActive
-                    ? `${tab.bgColor} ${tab.color} border-2 ${tab.borderColor} shadow-lg`
-                    : "bg-gray-50 text-gray-600 border-2 border-gray-200 hover:border-gray-300 hover:shadow-md"
-                }`}
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {/* Background Icon Decoration */}
-                <div className={`absolute -right-4 -top-4 opacity-10 ${isActive ? 'opacity-20' : ''}`}>
-                  <Icon size={80} />
-                </div>
-
-                {/* Content */}
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`p-2.5 rounded-lg ${isActive ? 'bg-white bg-opacity-30' : 'bg-white'}`}>
-                      <Icon size={24} />
-                    </div>
-                    <motion.span
-                      className={`text-2xl font-bold ${isActive ? '' : 'text-gray-400'}`}
-                      animate={isActive ? { scale: [1, 1.1, 1] } : {}}
-                      transition={{ duration: 0.3 }}
-                    >
-                      {count}
-                    </motion.span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-1">{tab.label}</h3>
-                  <p className={`text-xs ${isActive ? 'opacity-80' : 'text-gray-500'}`}>
-                    {tab.description}
-                  </p>
-                </div>
-
-                {/* Active Indicator */}
-                {isActive && (
-                  <motion.div
-                    layoutId="activeTab"
-                    className="absolute bottom-0 left-0 right-0 h-1 bg-current"
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
-                )}
-              </motion.button>
-            );
-          })}
-        </div>
-
-        {/* "Show All" Button */}
-        <div className="mb-6">
-          <motion.button
-            onClick={() => setActiveFilter("ALL")}
-            className={`w-full flex items-center justify-between p-4 rounded-xl text-left transition-all ${
-              activeFilter === "ALL"
-                ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
-                : "bg-gray-50 text-gray-700 border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50"
-            }`}
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-          >
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${activeFilter === "ALL" ? 'bg-white bg-opacity-20' : 'bg-white'}`}>
-                <Layers size={24} className={activeFilter === "ALL" ? "text-white" : "text-blue-600"} />
-              </div>
-              <div>
-                <h3 className="font-bold text-lg">Tampilkan Pesanan Aktif</h3>
-                <p className={`text-sm ${activeFilter === "ALL" ? 'text-blue-100' : 'text-gray-500'}`}>
-                  Lihat pesanan menunggu dan diproses (tanpa yang selesai)
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className={`text-3xl font-bold ${activeFilter === "ALL" ? 'text-white' : 'text-blue-600'}`}>
-                {getTabCount("ALL")}
-              </span>
-            </div>
-          </motion.button>
-        </div>
-
-        {/* Search Bar */}
-        <div className="relative">
-          <Search
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
-            size={20}
-          />
-          <input
-            type="text"
-            placeholder="Cari berdasarkan nama pelanggan, nomor meja, atau ID pesanan..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-12 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-full transition-all"
-            >
-              <X size={18} />
-            </button>
+      {showSingleColumn ? (
+        <div className="space-y-4">
+          {filteredOrders.length === 0 ? (
+            <div className="text-center py-10 text-gray-500">Tidak ada pesanan ditemukan.</div>
+          ) : (
+            filteredOrders.map(order => <WideOrderCard key={order.id} order={order} />)
           )}
         </div>
-
-        {/* Active Filter Indicator */}
-        {(activeFilter !== "ALL" || searchQuery) && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mt-4 pt-4 border-t border-gray-200"
-          >
-            <div className="flex items-center gap-2 text-sm flex-wrap">
-              <span className="text-gray-600 font-medium">Filter aktif:</span>
-              {activeFilter !== "ALL" && (
-                <motion.span
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold flex items-center gap-2 border border-blue-200"
-                >
-                  {(() => {
-                    const tab = filterTabs.find(t => t.id === activeFilter);
-                    const Icon = tab?.icon;
-                    return Icon ? <Icon size={16} /> : null;
-                  })()}
-                  {filterTabs.find(t => t.id === activeFilter)?.label}
-                  <button
-                    onClick={() => setActiveFilter("ALL")}
-                    className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
-                  >
-                    <X size={16} />
-                  </button>
-                </motion.span>
-              )}
-              {searchQuery && (
-                <motion.span
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold flex items-center gap-2 border border-gray-300"
-                >
-                  <Search size={16} />
-                  "{searchQuery}"
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="hover:bg-gray-200 rounded-full p-0.5 transition-colors"
-                  >
-                    <X size={16} />
-                  </button>
-                </motion.span>
-              )}
-              <button
-                onClick={() => {
-                  setActiveFilter("ALL");
-                  setSearchQuery("");
-                }}
-                className="ml-auto px-4 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-semibold rounded-lg transition-all flex items-center gap-2"
-              >
-                <Filter size={16} />
-                Reset semua filter
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </div>
-
-      {/* Results Summary */}
-      <div className="mb-4 text-sm text-gray-600">
-        Menampilkan <span className="font-bold text-gray-800">{filteredOrders.length}</span> pesanan
-        {activeFilter !== "ALL" && ` dengan status "${filterTabs.find(t => t.id === activeFilter)?.label}"`}
-        {searchQuery && ` yang sesuai dengan pencarian`}
-      </div>
-
-      {/* Conditional View: Single Column or Kanban Board */}
-      {showSingleColumn ? (
-        // Single Column View (when filter is active)
-        <div className="space-y-4">
-          <AnimatePresence>
-            {filteredOrders.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-16 bg-white rounded-xl shadow-lg"
-              >
-                <ClipboardList size={48} className="text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg">
-                  Tidak ada pesanan yang sesuai dengan filter
-                </p>
-              </motion.div>
-            ) : (
-              filteredOrders.map((order) => (
-                <WideOrderCard key={order.id} order={order} />
-              ))
-            )}
-          </AnimatePresence>
-        </div>
       ) : (
-        // Kanban Board View (when showing all) - Hanya tampilkan PENDING dan PREPARING
         <div className="flex gap-4 overflow-x-auto pb-4">
-          <OrderColumn
-            title="Menunggu"
-            icon={Clock}
-            count={pendingOrders.length}
-            orders={pendingOrders}
-            color="bg-yellow-100 text-yellow-700"
-          />
-          <OrderColumn
-            title="Diproses"
-            icon={UtensilsCrossed}
-            count={preparingOrders.length}
-            orders={preparingOrders}
-            color="bg-blue-100 text-blue-700"
-          />
+          <OrderColumn title="Menunggu" icon={Clock} count={pendingOrders.length} orders={pendingOrders} color="bg-yellow-100 text-yellow-700" />
+          <OrderColumn title="Diproses" icon={UtensilsCrossed} count={preparingOrders.length} orders={preparingOrders} color="bg-blue-100 text-blue-700" />
         </div>
       )}
 
       {/* Detail Modal */}
       {showDetailModal && selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-          >
-            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex justify-between items-center rounded-t-2xl">
-              <div>
-                <h2 className="text-2xl font-bold text-white">
-                  Detail Pesanan #{selectedOrder.id}
-                </h2>
-                <p className="text-blue-100 text-sm">
-                  {formatDate(selectedOrder.createdAt)} - {formatTime(selectedOrder.createdAt)}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowDetailModal(false)}
-                className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
-              >
-                <X size={24} className="text-white" />
-              </button>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Detail Pesanan #{selectedOrder.id}</h2>
+              <button onClick={() => setShowDetailModal(false)}><X /></button>
             </div>
-
-            <div className="p-6 space-y-6">
-              {/* Customer Info */}
-              <div className="bg-gray-50 rounded-xl p-4">
-                <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <Users size={20} className="text-blue-600" />
-                  Informasi Pelanggan
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Nama</p>
-                    <p className="font-semibold text-gray-800">
-                      {selectedOrder.customerName}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Nomor Meja</p>
-                    <p className="font-semibold text-gray-800">
-                      Meja {selectedOrder.tableNumber}
-                    </p>
-                  </div>
-                  {/* Payment Method */}
-                  <div className="col-span-2">
-                    <p className="text-sm text-gray-600 mb-2">Metode Pembayaran</p>
-                    <span className={`px-4 py-2 rounded-lg text-sm font-semibold border inline-flex items-center gap-2 ${getPaymentBadge(selectedOrder.paymentMethod)}`}>
-                      {getPaymentIcon(selectedOrder.paymentMethod)}
-                      {selectedOrder.paymentMethod === "CASH" ? "Pembayaran Tunai" : "Pembayaran QR Code (QRIS/E-Wallet)"}
-                    </span>
-                  </div>
+            
+            <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex justify-between mb-2"><span>Pelanggan:</span> <strong>{selectedOrder.customerName}</strong></div>
+                    <div className="flex justify-between mb-2"><span>Meja:</span> <strong>{selectedOrder.tableNumber}</strong></div>
+                    <div className="flex justify-between"><span>Pembayaran:</span> <strong>{selectedOrder.paymentMethod}</strong></div>
                 </div>
-              </div>
 
-              {/* Order Items */}
-              <div>
-                <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <ClipboardList size={20} className="text-blue-600" />
-                  Detail Pesanan
-                </h3>
-                <div className="border rounded-xl overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">
-                          Item
-                        </th>
-                        <th className="text-center px-4 py-3 text-sm font-semibold text-gray-600">
-                          Qty
-                        </th>
-                        <th className="text-right px-4 py-3 text-sm font-semibold text-gray-600">
-                          Harga
-                        </th>
-                        <th className="text-right px-4 py-3 text-sm font-semibold text-gray-600">
-                          Subtotal
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {selectedOrder.items.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-gray-50">
-                          <td className="px-4 py-3">
-                            <p className="font-medium text-gray-800">{item.name}</p>
-                          </td>
-                          <td className="px-4 py-3 text-center text-gray-700">
-                            {item.qty}
-                          </td>
-                          <td className="px-4 py-3 text-right text-gray-700">
-                            Rp {item.price.toLocaleString("id-ID")}
-                          </td>
-                          <td className="px-4 py-3 text-right font-semibold text-gray-800">
-                            Rp {(item.qty * item.price).toLocaleString("id-ID")}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-blue-50">
-                      <tr>
-                        <td
-                          colSpan={3}
-                          className="px-4 py-4 text-right font-bold text-gray-800"
-                        >
-                          Total:
-                        </td>
-                        <td className="px-4 py-4 text-right font-bold text-blue-600 text-lg">
-                          Rp {selectedOrder.totalPrice.toLocaleString("id-ID")}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                        <thead className="bg-gray-100">
+                            <tr>
+                                <th className="p-3 text-left">Menu</th>
+                                <th className="p-3 text-center">Qty</th>
+                                <th className="p-3 text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {selectedOrder.items.map((item, i) => (
+                                <tr key={i} className="border-t">
+                                    <td className="p-3">
+                                        <div className="font-medium">{item.name}</div>
+                                        {item.note && <div className="text-xs text-gray-500 italic">"{item.note}"</div>}
+                                    </td>
+                                    <td className="p-3 text-center">{item.qty}</td>
+                                    <td className="p-3 text-right">Rp {(item.price * item.qty).toLocaleString('id-ID')}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
-              </div>
 
-              {/* Action Buttons */}
-              {selectedOrder.status !== "DONE" && selectedOrder.status !== "CANCELLED" && (
-                <div className="flex gap-3 pt-4 border-t">
-                  {selectedOrder.status === "PENDING" && (
-                    <>
-                      <button
-                        onClick={() => {
-                          updateOrderStatus(selectedOrder.id, "PREPARING");
-                          setShowDetailModal(false);
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition"
-                      >
-                        <UtensilsCrossed size={18} /> Proses Pesanan
-                      </button>
-                      <button
-                        onClick={() => {
-                          updateOrderStatus(selectedOrder.id, "CANCELLED");
-                          setShowDetailModal(false);
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-semibold transition"
-                      >
-                        <X size={18} /> Batalkan
-                      </button>
-                    </>
-                  )}
-                  {selectedOrder.status === "PREPARING" && (
-                    <button
-                      onClick={() => {
-                        updateOrderStatus(selectedOrder.id, "DONE");
-                        setShowDetailModal(false);
-                      }}
-                      className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold transition"
-                    >
-                      <CheckCircle size={18} /> Tandai Selesai
-                    </button>
-                  )}
+                <div className="flex justify-between items-center text-lg font-bold pt-2">
+                    <span>Total:</span>
+                    <span className="text-blue-600">Rp {selectedOrder.totalPrice.toLocaleString('id-ID')}</span>
                 </div>
-              )}
+
+                <div className="flex gap-2 pt-4">
+                    {selectedOrder.status === 'PENDING' && (
+                        <>
+                            <button onClick={() => { handleUpdateStatus(selectedOrder.id, "PREPARING"); setShowDetailModal(false); }} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold">Terima & Proses</button>
+                            <button onClick={() => { handleUpdateStatus(selectedOrder.id, "CANCELLED"); setShowDetailModal(false); }} className="flex-1 bg-red-100 text-red-600 py-3 rounded-lg font-bold">Tolak</button>
+                        </>
+                    )}
+                    {selectedOrder.status === 'PREPARING' && (
+                        <button onClick={() => { handleUpdateStatus(selectedOrder.id, "DONE"); setShowDetailModal(false); }} className="w-full bg-green-600 text-white py-3 rounded-lg font-bold">Selesai</button>
+                    )}
+                </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
     </motion.div>
