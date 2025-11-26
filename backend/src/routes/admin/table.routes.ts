@@ -1,10 +1,21 @@
+// backend/src/routes/admin/table.routes.ts
+
 import { Router } from "express";
 import * as TableController from "../../controllers/admin/table.controller";
 import { verifyRole, verifyToken } from "../../middlewares/authMiddleware";
+import { validate } from "../../middlewares/validateMiddleware";
+import { createTableSchema, updateTableSchema } from "../../schemas/table.schema";
 
 const router = Router();
 
-router.use(verifyToken); // Semua route meja harus login admin
+router.use(verifyToken);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Admin Tables
+ *     description: Manajemen Meja Restoran
+ */
 
 /**
  * @swagger
@@ -18,7 +29,11 @@ router.use(verifyToken); // Semua route meja harus login admin
  *       200:
  *         description: List semua meja
  */
-router.get("/tables", verifyRole(["SUPER_ADMIN", "CASHIER"]), TableController.getTables);
+router.get(
+  "/tables",
+  verifyRole(["SUPER_ADMIN", "CASHIER"]),
+  TableController.getTables
+);
 
 /**
  * @swagger
@@ -49,6 +64,75 @@ router.get("/tables", verifyRole(["SUPER_ADMIN", "CASHIER"]), TableController.ge
  *       201:
  *         description: Meja berhasil dibuat
  */
-router.post("/tables", verifyRole(["SUPER_ADMIN", "CASHIER"]), TableController.createTable);
+router.post(
+  "/tables", 
+  verifyRole(["SUPER_ADMIN", "CASHIER"]), 
+  validate(createTableSchema), // <--- Validasi di sini
+  TableController.createTable
+);
+
+/**
+ * @swagger
+ * /admin/tables/{id}:
+ *   put:
+ *     summary: Mengupdate data meja
+ *     tags: [Admin Tables]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               number:
+ *                 type: integer
+ *               location:
+ *                 type: string
+ *               capacity:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Meja berhasil diupdate
+ *       400:
+ *         description: Gagal update (misal nomor meja duplikat)
+ */
+router.put(
+  "/tables/:id", 
+  verifyRole(["SUPER_ADMIN", "CASHIER"]), 
+  validate(updateTableSchema), // <--- Validasi di sini
+  TableController.updateTable
+);
+
+/**
+ * @swagger
+ * /admin/tables/{id}:
+ *   delete:
+ *     summary: Menghapus meja
+ *     tags: [Admin Tables]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Meja berhasil dihapus
+ */
+router.delete(
+  "/tables/:id",
+  verifyRole(["SUPER_ADMIN", "CASHIER"]),
+  TableController.deleteTable
+);
 
 export default router;

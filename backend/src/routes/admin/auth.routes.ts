@@ -1,5 +1,7 @@
 import { Router } from "express";
 import * as AuthController from "../../controllers/admin/auth.controller";
+import { validate } from "../../middlewares/validateMiddleware";
+import { loginSchema } from "../../schemas/auth.schema";
 
 
 const router = Router();
@@ -31,6 +33,6 @@ const router = Router();
  *       401:
  *         description: Username atau password salah
  */
-router.post("/login", AuthController.login);
+router.post("/login",validate(loginSchema), AuthController.login);
 
 export default router;

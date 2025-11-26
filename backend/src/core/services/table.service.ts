@@ -1,20 +1,24 @@
+// backend/src/core/services/table.service.ts
+
 import prisma from "../../config/prisma";
-import crypto from "crypto"; // Import crypto untuk generate UUID
+import crypto from "crypto";
 
 export class TableService {
-  // Mendapatkan semua meja
   static async getAllTables() {
     return await prisma.table.findMany({
       orderBy: { number: 'asc' }
     });
   }
 
-  // Membuat meja baru (Admin)
   static async createTable(data: {
     number: number;
     location: string;
     capacity: number;
   }) {
+    // Cek duplikasi nomor meja
+    const existing = await prisma.table.findUnique({ where: { number: data.number }});
+    if(existing) throw new Error("Nomor meja sudah ada");
+
     const qrCodeUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/customer/menu?table=${data.number}`;
 
     return await prisma.table.create({
@@ -26,17 +30,42 @@ export class TableService {
     });
   }
 
-  // Menghapus meja (Admin)
+  // [TAMBAHAN BARU] Fungsi Update
+  static async updateTable(id: number, data: { number?: number; location?: string; capacity?: number }) {
+    // Jika user ingin mengubah nomor meja, cek apakah nomor baru sudah dipakai meja lain
+    if (data.number) {
+      const existing = await prisma.table.findFirst({
+        where: {
+          number: data.number,
+          NOT: { id: id } // Kecuali meja ini sendiri
+        }
+      });
+      if (existing) throw new Error("Nomor meja sudah digunakan oleh meja lain");
+    }
+
+    // Update QR Code jika nomor meja berubah
+    let updateData: any = { ...data };
+    if (data.number) {
+      updateData.qrCode = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/customer/menu?table=${data.number}`;
+    }
+
+    return await prisma.table.update({
+      where: { id },
+      data: updateData
+    });
+  }
+
   static async deleteTable(id: number) {
+    // Cek apakah meja sedang ada order aktif (Opsional, untuk keamanan)
+    // const activeOrder = await prisma.order.findFirst({ where: { tableId: id, status: { not: 'DONE' } } });
+    // if (activeOrder) throw new Error("Tidak dapat menghapus meja yang sedang memiliki pesanan aktif");
+
     return await prisma.table.delete({
       where: { id }
     });
   }
 
-  // === METODE BARU UNTUK SESI PELANGGAN ===
-  // Dipanggil saat pelanggan scan QR Code
   static async startSession(tableNumber: number) {
-    // 1. Cari meja berdasarkan nomor
     const table = await prisma.table.findUnique({
       where: { number: tableNumber },
     });
@@ -45,12 +74,7 @@ export class TableService {
       throw new Error("Table not found");
     }
 
-    // 2. Buat Session ID unik (UUID)
     const sessionId = crypto.randomUUID();
-
-    // 3. Simpan sesi ke database
-    // Opsional: Hapus sesi lama yang mungkin masih menggantung di meja ini agar bersih
-    // await prisma.tableSession.deleteMany({ where: { tableId: table.id } });
 
     const session = await prisma.tableSession.create({
       data: {
@@ -59,7 +83,6 @@ export class TableService {
       },
     });
 
-    // Kembalikan data sesi yang diperlukan frontend
     return {
       sessionId: session.sessionId,
       tableNumber: table.number,

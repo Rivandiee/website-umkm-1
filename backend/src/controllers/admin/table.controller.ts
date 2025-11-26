@@ -1,12 +1,14 @@
+// backend/src/controllers/admin/table.controller.ts
+
 import { Request, Response } from "express";
 import { TableService } from "../../core/services/table.service";
 
 export const getTables = async (req: Request, res: Response) => {
   try {
     const tables = await TableService.getAllTables();
-    return res.status(200).json({ data: tables });
+    return (res as any).success(tables); // Menggunakan responseHandler custom Anda
   } catch (error) {
-    return res.status(500).json({ error: "Failed to fetch tables" });
+    return (res as any).error("Failed to fetch tables");
   }
 };
 
@@ -18,9 +20,27 @@ export const createTable = async (req: Request, res: Response) => {
       location,
       capacity: Number(capacity)
     });
-    return res.status(201).json({ data: table, message: "Table created" });
-  } catch (error) {
-    return res.status(500).json({ error: "Failed to create table" });
+    return (res as any).success(table, "Table created successfully");
+  } catch (error: any) {
+    return (res as any).error(error.message || "Failed to create table", 400);
+  }
+};
+
+// [TAMBAHAN BARU] Update Controller
+export const updateTable = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { number, location, capacity } = req.body;
+
+    const table = await TableService.updateTable(Number(id), {
+      number: number ? Number(number) : undefined,
+      location,
+      capacity: capacity ? Number(capacity) : undefined
+    });
+
+    return (res as any).success(table, "Table updated successfully");
+  } catch (error: any) {
+    return (res as any).error(error.message || "Failed to update table", 400);
   }
 };
 
@@ -28,8 +48,8 @@ export const deleteTable = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     await TableService.deleteTable(Number(id));
-    return (res as any).success(null, "Table deleted");
-  } catch (error) {
-    return (res as any).error("Failed to delete table");
+    return (res as any).success(null, "Table deleted successfully");
+  } catch (error: any) {
+    return (res as any).error(error.message || "Failed to delete table", 400);
   }
 };
