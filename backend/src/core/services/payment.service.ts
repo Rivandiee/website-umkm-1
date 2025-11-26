@@ -4,8 +4,15 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export class PaymentService {
-  // Inisialisasi Snap Client
+  // Snap untuk create token
   private static snap = new midtransClient.Snap({
+    isProduction: process.env.MIDTRANS_IS_PRODUCTION === "true",
+    serverKey: process.env.MIDTRANS_SERVER_KEY || "",
+    clientKey: process.env.MIDTRANS_CLIENT_KEY || ""
+  });
+
+  // CoreApi untuk handle notification
+  private static core = new midtransClient.CoreApi({
     isProduction: process.env.MIDTRANS_IS_PRODUCTION === "true",
     serverKey: process.env.MIDTRANS_SERVER_KEY || "",
     clientKey: process.env.MIDTRANS_CLIENT_KEY || ""
@@ -27,15 +34,14 @@ export class PaymentService {
         quantity: item.qty,
         name: item.menu.name
       }))
-    }; // <--- PENUTUP OBJEK PARAMETER (PENTING)
+    };
 
     const transaction = await this.snap.createTransaction(parameter);
     return transaction.token;
-  } // <--- PENUTUP FUNGSI createTransactionToken (PENTING)
+  }
 
-  // --- FUNGSI 2: VERIFIKASI NOTIFIKASI (DIPISAH) ---
+  // --- FUNGSI 2: VERIFIKASI NOTIFIKASI ---
   static async verifyNotification(notificationBody: any) {
-    // Pastikan mengakses method .notification()
-    return await this.snap.transaction.notification(notificationBody);
+    return await (this.core as any).transaction.notification(notificationBody);
   }
 }
