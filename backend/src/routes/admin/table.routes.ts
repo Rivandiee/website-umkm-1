@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as TableController from "../../controllers/admin/table.controller";
-import { verifyToken } from "../../middlewares/authMiddleware";
+import { verifyRole, verifyToken } from "../../middlewares/authMiddleware";
 
 const router = Router();
 
@@ -18,7 +18,7 @@ router.use(verifyToken); // Semua route meja harus login admin
  *       200:
  *         description: List semua meja
  */
-router.get("/tables", TableController.getTables);
+router.get("/tables", verifyRole(["SUPER_ADMIN", "CASHIER"]), TableController.getTables);
 
 /**
  * @swagger
@@ -49,6 +49,6 @@ router.get("/tables", TableController.getTables);
  *       201:
  *         description: Meja berhasil dibuat
  */
-router.post("/tables", TableController.createTable);
+router.post("/tables", verifyRole(["SUPER_ADMIN", "CASHIER"]), TableController.createTable);
 
 export default router;

@@ -10,15 +10,24 @@ export class AuthService {
     const validPassword = await bcrypt.compare(password, admin.password);
     if (!validPassword) throw new Error("Invalid password");
 
+    // MASUKKAN ROLE KE TOKEN
     const token = jwt.sign(
-      { id: admin.id, username: admin.username },
+      { 
+        id: admin.id, 
+        username: admin.username, 
+        role: admin.role 
+      },
       process.env.JWT_SECRET as string,
       { expiresIn: "1d" }
     );
 
     return {
       token,
-      admin: { name: admin.name, username: admin.username }
+      admin: { 
+        name: admin.name, 
+        username: admin.username,
+        role: admin.role 
+      }
     };
   }
 }

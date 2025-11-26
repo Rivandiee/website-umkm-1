@@ -7,6 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+generator seed {
+  provider = "ts-node" // jika pakai TypeScript
+}
 
 // ===================================
 // DITAMBAHKAN LOKASI & KAPASITAS PADA MODEL TABLE
@@ -93,11 +96,17 @@ model Transaction {
   order       Order         @relation(fields: [orderId], references: [id])
 }
 
+enum Role {
+  SUPER_ADMIN // Akses penuh (Analytics, Manage Admin, Menu)
+  CASHIER     // Akses Order, Payment, Table
+}
+
 model Admin {
   id        Int      @id @default(autoincrement())
   username  String   @unique
   password  String
   name      String
+  role      Role     @default(CASHIER) // Tambahkan kolom ini
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

@@ -1,10 +1,12 @@
 import { Router } from "express";
 import * as CategoryController from "../../controllers/admin/category.controller";
-import { verifyToken } from "../../middlewares/authMiddleware";
+import { verifyRole, verifyToken } from "../../middlewares/authMiddleware";
 
 const router = Router();
 
 router.use(verifyToken);
+
+const allowedRoles = ["SUPER_ADMIN", "CASHIER"];
 
 /**
  * @swagger
@@ -49,7 +51,7 @@ router.use(verifyToken);
  *                           menus:
  *                             type: integer
  */
-router.get("/categories", CategoryController.getCategories);
+router.get("/categories", verifyRole(allowedRoles), CategoryController.getCategories);
 
 /**
  * @swagger
@@ -80,7 +82,7 @@ router.get("/categories", CategoryController.getCategories);
  *       500:
  *         description: Gagal membuat kategori
  */
-router.post("/categories", CategoryController.createCategory);
+router.post("/categories", verifyRole(allowedRoles), CategoryController.createCategory);
 
 /**
  * @swagger
@@ -116,7 +118,7 @@ router.post("/categories", CategoryController.createCategory);
  *       500:
  *         description: Gagal mengupdate kategori
  */
-router.put("/categories/:id", CategoryController.updateCategory);
+router.put("/categories/:id", verifyRole(allowedRoles), CategoryController.updateCategory);
 
 /**
  * @swagger
@@ -139,6 +141,6 @@ router.put("/categories/:id", CategoryController.updateCategory);
  *       500:
  *         description: Gagal menghapus kategori
  */
-router.delete("/categories/:id", CategoryController.deleteCategory);
+router.delete("/categories/:id", verifyRole(allowedRoles), CategoryController.deleteCategory);
 
 export default router;

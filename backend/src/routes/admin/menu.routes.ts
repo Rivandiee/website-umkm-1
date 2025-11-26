@@ -1,11 +1,14 @@
 import { Router } from "express";
 import * as MenuController from "../../controllers/admin/menu.controller";
 import { upload } from "../../middlewares/uploadMiddleware";
-import { verifyToken } from "../../middlewares/authMiddleware";
+import { verifyRole, verifyToken } from "../../middlewares/authMiddleware";
 
 const router = Router();
 
 router.use(verifyToken);
+
+// Izinkan KEDUANYA untuk semua operasi menu
+const allowedRoles = ["SUPER_ADMIN", "CASHIER"];
 
 /**
  * @swagger
@@ -28,7 +31,7 @@ router.use(verifyToken);
  *       500:
  *         description: Terjadi kesalahan server
  */
-router.get("/menus", MenuController.getMenus);
+router.get("/menus", verifyRole(allowedRoles), MenuController.getMenus);
 
 /**
  * @swagger
@@ -68,7 +71,7 @@ router.get("/menus", MenuController.getMenus);
  *       500:
  *         description: Terjadi kesalahan server
  */
-router.post("/menus", upload.single("image"), MenuController.createMenu);
+router.post("/menus", verifyRole(allowedRoles), upload.single("image"), MenuController.createMenu);
 
 /**
  * @swagger
@@ -111,7 +114,7 @@ router.post("/menus", upload.single("image"), MenuController.createMenu);
  *       500:
  *         description: Terjadi kesalahan server
  */
-router.put("/menus/:id", upload.single("image"), MenuController.updateMenu);
+router.put("/menus/:id", verifyRole(allowedRoles), upload.single("image"), MenuController.updateMenu);
 
 /**
  * @swagger
@@ -136,7 +139,7 @@ router.put("/menus/:id", upload.single("image"), MenuController.updateMenu);
  *       500:
  *         description: Terjadi kesalahan server
  */
-router.delete("/menus/:id", MenuController.deleteMenu);
+router.delete("/menus/:id", verifyRole(allowedRoles), MenuController.deleteMenu);
 
 /**
  * @swagger
@@ -169,6 +172,6 @@ router.delete("/menus/:id", MenuController.deleteMenu);
  *       404:
  *         description: Menu tidak ditemukan
  */
-router.patch("/menus/:id/status", MenuController.updateMenuStatus);
+router.patch("/menus/:id/status", verifyRole(allowedRoles), MenuController.updateMenuStatus);
 
 export default router;

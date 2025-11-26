@@ -1,11 +1,11 @@
 import { Router } from "express";
 import * as AnalyticsController from "../../controllers/admin/analytics.controller";
-import { verifyToken } from "../../middlewares/authMiddleware";
+import { verifyRole, verifyToken } from "../../middlewares/authMiddleware";
 
 const router = Router();
 
-// Lindungi route ini dengan token admin
-router.use(verifyToken);
+// Hanya SUPER_ADMIN
+router.use(verifyToken, verifyRole(["SUPER_ADMIN"]));
 
 /**
  * @swagger

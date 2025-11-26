@@ -1,8 +1,9 @@
 import prisma from "../../config/prisma";
 import bcrypt from "bcrypt";
+import { Role } from "@prisma/client"; // Import Enum Role dari Prisma Client
 
 export class RegisterService {
-  static async registerAdmin(data: { username: string; password: string; name: string }) {
+  static async registerAdmin(data: { username: string; password: string; name: string; role?: Role }) {
     
     // 1. Cek apakah username sudah ada
     const existingAdmin = await prisma.admin.findUnique({
@@ -21,22 +22,27 @@ export class RegisterService {
       data: {
         username: data.username,
         password: hashedPassword,
-        name: data.name
+        name: data.name,
+        // Gunakan role yang dikirim, atau default ke CASHIER jika kosong
+        role: data.role || Role.CASHIER 
       },
+      // Pilih field yang ingin dikembalikan (exclude password)
       select: {
         id: true,
         username: true,
         name: true,
+        role: true, // Sertakan role di response
         createdAt: true
       }
     });
 
-    // 4. Ambil semua admin (tanpa password)
+    // 4. Ambil semua admin (tanpa password) untuk refresh list di frontend
     const allAdmins = await prisma.admin.findMany({
       select: {
         id: true,
         username: true,
         name: true,
+        role: true,
         createdAt: true
       },
       orderBy: {
@@ -53,19 +59,19 @@ export class RegisterService {
   }
 
   static async getAllAdmins() {
-  const admins = await prisma.admin.findMany({
-    select: {
-      id: true,
-      username: true,
-      name: true,
-      createdAt: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+    const admins = await prisma.admin.findMany({
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        role: true, // Sertakan role saat mengambil list
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
-  return admins;
-}
-
+    return admins;
+  }
 }

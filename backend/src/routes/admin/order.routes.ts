@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as OrderController from "../../controllers/admin/order.controller";
-import { verifyToken } from "../../middlewares/authMiddleware";
+import { verifyRole, verifyToken } from "../../middlewares/authMiddleware";
 
 const router = Router();
 
@@ -26,7 +26,7 @@ router.use(verifyToken);
  *       200:
  *         description: List semua order
  */
-router.get("/orders", OrderController.getOrders);
+router.get("/orders", verifyRole(["SUPER_ADMIN", "CASHIER"]), OrderController.getOrders);
 
 /**
  * @swagger
@@ -61,6 +61,6 @@ router.get("/orders", OrderController.getOrders);
  *       404:
  *         description: Order tidak ditemukan
  */
-router.patch("/orders/:id/status", OrderController.updateOrderStatus);
+router.patch("/orders/:id/status", verifyRole(["SUPER_ADMIN", "CASHIER"]), OrderController.updateOrderStatus);
 
 export default router;

@@ -1,7 +1,11 @@
 import { Router } from "express";
 import * as RegisterController from "../../controllers/admin/register.controller";
+import { verifyRole, verifyToken } from "../../middlewares/authMiddleware";
 
 const router = Router();
+
+// Lindungi route ini
+router.use(verifyToken, verifyRole(["SUPER_ADMIN"]));
 
 /**
  * @swagger
