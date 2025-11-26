@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import api from "../../lib/axios"; // Pastikan path ini sesuai dengan lokasi lib/axios.ts Anda
+import api from "../../lib/axios";
 import { Lock, User, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 
 export default function AdminLoginPage() {
@@ -15,7 +15,6 @@ export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Cek jika sudah login, redirect ke admin (Client-side check)
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
     if (token) {
@@ -29,21 +28,22 @@ export default function AdminLoginPage() {
     setIsLoading(true);
 
     try {
-      // Request ke Backend
       const response = await api.post("/admin/login", {
         username,
         password,
       });
 
-      // Sesuai struktur response backend: { message, data: { token, admin } }
       const { token, admin } = response.data.data;
 
       if (token) {
-        // Simpan token & data user
+        // 1. Simpan ke LocalStorage (untuk request API di client)
         localStorage.setItem("admin_token", token);
         localStorage.setItem("admin_user", JSON.stringify(admin));
 
-        // Redirect ke Dashboard
+        // 2. [BARU] Simpan ke Cookie (untuk Middleware Next.js)
+        // Expire dalam 1 hari (86400 detik)
+        document.cookie = `admin_token=${token}; path=/; max-age=86400; SameSite=Strict`;
+
         router.push("/admin");
       } else {
         setError("Token tidak valid dari server.");
@@ -57,6 +57,7 @@ export default function AdminLoginPage() {
     }
   };
 
+  // ... (Kode return JSX di bawah tetap sama seperti sebelumnya)
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
       <motion.div
