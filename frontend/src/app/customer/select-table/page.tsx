@@ -10,6 +10,7 @@ import TableLegend from "../../../components/customer/select-table/TableLegend";
 import ConfirmationModal from "../../../components/customer/select-table/ConfirmationModal";
 
 interface Table {
+  id: string | number;
   number: number;
   status: "available" | "occupied";
   capacity: number;
@@ -21,11 +22,11 @@ export default function SelectTablePage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
-
   // Generate nomor meja 1-50
   const totalTables = 50;
   const [tables] = useState<Table[]>(
     Array.from({ length: totalTables }, (_, i) => ({
+      id: i + 1,
       number: i + 1,
       status: Math.random() > 0.3 ? "available" : "occupied",
       capacity: [2, 4, 6, 8][Math.floor(Math.random() * 4)],

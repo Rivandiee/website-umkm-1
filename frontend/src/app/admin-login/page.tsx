@@ -1,9 +1,10 @@
+// frontend/src/app/admin-login/page.tsx
 "use client";
 
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import api from "../../lib/axios"; // Import helper axios yang sudah dibuat
 import { Lock, User, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 
 export default function AdminLoginPage() {
@@ -14,29 +15,40 @@ export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const API_URL = "/api/admin/login";
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
     try {
-      const response = await axios.post(API_URL, {
+      // Menggunakan api helper, base URL sudah terkonfigurasi di lib/axios.ts
+      // Endpoint sesuai route backend: /admin/login
+      const response = await api.post("/admin/login", {
         username,
         password,
       });
 
-      const { token } = response.data;
+      // Struktur response backend:
+      // { message: "Login successful", data: { token: "...", admin: { ... } } }
+      const { token, admin } = response.data.data;
 
       if (token) {
+        // Simpan token untuk request selanjutnya (akan dipakai otomatis oleh interceptor axios)
         localStorage.setItem("admin_token", token);
+        
+        // Simpan data user admin (opsional, untuk ditampilkan di sidebar/header)
+        if (admin) {
+          localStorage.setItem("admin_user", JSON.stringify(admin));
+        }
+
+        // Redirect ke dashboard admin
         router.push("/admin");
       } else {
-        setError("Login gagal. Respon API tidak valid.");
+        setError("Login gagal. Token tidak diterima.");
       }
     } catch (err: any) {
       console.error("Login API Error:", err);
+      // Menangani pesan error dari backend atau default error
       const errorMessage = err.response?.data?.message || "Username atau password salah!";
       setError(errorMessage);
     } finally {
