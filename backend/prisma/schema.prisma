@@ -58,6 +58,7 @@ model Menu {
   items       OrderItem[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  deletedAt DateTime? // Field untuk soft delete
 }
 
 model Order {

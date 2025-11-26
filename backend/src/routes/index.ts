@@ -11,6 +11,8 @@ import customerMenuRoutes from "./customer/menu.routes";
 import customerOrderRoutes from "./customer/order.routes";
 import customerSessionRoutes from "./customer/session.routes";
 
+import * as PaymentController from "../controllers/customer/payment.controller";
+
 const router = Router();
 
 // Admin Routes
@@ -27,5 +29,7 @@ router.use("/customer", customerMenuRoutes);
 router.use("/customer", customerOrderRoutes);
 router.use("/customer", customerSessionRoutes);
 
+// Webhook Midtrans (Public Access)
+router.post("/payment/notification", PaymentController.handleMidtransNotification);
 
 export default router;
