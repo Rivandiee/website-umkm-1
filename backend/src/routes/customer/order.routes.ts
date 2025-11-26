@@ -28,6 +28,7 @@ const router = Router();
  *               - items
  *               - totalPrice
  *               - paymentMethod
+ *               - sessionId
  *             properties:
  *               customerName:
  *                 type: string
@@ -35,6 +36,10 @@ const router = Router();
  *               tableNumber:
  *                 type: integer
  *                 example: 5
+ *               sessionId:
+ *                 type: string
+ *                 description: Token sesi unik dari hasil scan QR
+ *                 example: "123e4567-e89b-12d3-a456-426614174000"
  *               totalPrice:
  *                 type: integer
  *                 example: 75000
@@ -113,7 +118,7 @@ const router = Router();
  *                       type: integer
  *                     status:
  *                       type: string
- *                       enum: [PENDING, PREPARING, DONE]
+ *                       enum: [PENDING, PREPARING, DONE, CANCELLED]
  *                     tableNumber:
  *                       type: integer
  *       404:
@@ -122,5 +127,8 @@ const router = Router();
  *         description: Terjadi kesalahan server
  */
 router.get("/orders/:orderId/status", OrderController.getOrderStatus);
+
+// Route create order tetap menggunakan controller yang sama
+router.post("/orders", OrderController.createOrder);
 
 export default router;

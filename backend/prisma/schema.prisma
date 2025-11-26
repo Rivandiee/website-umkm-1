@@ -106,6 +106,7 @@ enum OrderStatus {
   PENDING
   PREPARING
   DONE
+  CANCELLED  // <--- Tambahkan status ini
 }
 
 enum PaymentMethod {

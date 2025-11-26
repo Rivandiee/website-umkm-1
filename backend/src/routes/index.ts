@@ -9,6 +9,7 @@ import adminAnalyticsRoutes from "./admin/analytics.routes";
 
 import customerMenuRoutes from "./customer/menu.routes";
 import customerOrderRoutes from "./customer/order.routes";
+import customerSessionRoutes from "./customer/session.routes";
 
 const router = Router();
 
@@ -24,5 +25,7 @@ router.use("/admin/analytics", adminAnalyticsRoutes);
 // Customer Routes
 router.use("/customer", customerMenuRoutes);
 router.use("/customer", customerOrderRoutes);
+router.use("/customer", customerSessionRoutes);
+
 
 export default router;

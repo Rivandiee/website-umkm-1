@@ -54,7 +54,7 @@ router.get("/orders", OrderController.getOrders);
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [PENDING, PREPARING, DONE]
+ *                 enum: [PENDING, PREPARING, DONE, CANCELED]
  *     responses:
  *       200:
  *         description: Status order berhasil diperbarui
