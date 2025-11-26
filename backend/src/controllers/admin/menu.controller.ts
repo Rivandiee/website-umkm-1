@@ -1,5 +1,24 @@
 import { Request, Response } from "express";
 import { MenuService } from "../../core/services/menu.service";
+import fs from "fs";
+import path from "path";
+
+// Helper function untuk menghapus file fisik
+const deleteFile = (filePath: string) => {
+  try {
+    // filePath dari database formatnya: "/uploads/nama-file.jpg"
+    // Kita perlu path absolut di sistem
+    const filename = path.basename(filePath); // Ambil nama file saja
+    const absolutePath = path.join(__dirname, "../../../uploads", filename);
+
+    if (fs.existsSync(absolutePath)) {
+      fs.unlinkSync(absolutePath);
+      console.log(`File deleted: ${absolutePath}`);
+    }
+  } catch (error) {
+    console.error("Failed to delete file:", error);
+  }
+};
 
 export const getMenus = async (req: Request, res: Response) => {
   try {
@@ -39,9 +58,18 @@ export const updateMenuStatus = async (req: Request, res: Response) => {
 export const deleteMenu = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    await MenuService.deleteMenu(Number(id));
+    
+    // 1. Hapus data dari database (return data yang dihapus)
+    const deletedMenu = await MenuService.deleteMenu(Number(id));
+
+    // 2. Jika ada gambar, hapus file fisiknya
+    if (deletedMenu && deletedMenu.image) {
+      deleteFile(deletedMenu.image);
+    }
+
     return (res as any).success(null, "Menu deleted");
   } catch (error) {
+    console.error(error);
     return (res as any).error("Failed to delete menu");
   }
 };
@@ -49,19 +77,28 @@ export const deleteMenu = async (req: Request, res: Response) => {
 export const updateMenu = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const image = req.file ? `/uploads/${req.file.filename}` : undefined;
+    const newImage = req.file ? `/uploads/${req.file.filename}` : undefined;
     
+    // 1. Jika ada upload gambar baru, hapus gambar lama
+    if (newImage) {
+      const oldMenu = await MenuService.getMenuById(Number(id));
+      if (oldMenu && oldMenu.image) {
+        deleteFile(oldMenu.image);
+      }
+    }
+
     const updateData = {
       ...req.body,
       price: req.body.price ? Number(req.body.price) : undefined,
       categoryId: req.body.categoryId ? Number(req.body.categoryId) : undefined,
     };
     
-    if (image) updateData.image = image;
+    if (newImage) updateData.image = newImage;
 
     const menu = await MenuService.updateMenu(Number(id), updateData);
     return (res as any).success(menu, "Menu updated");
   } catch (error) {
+    console.error(error);
     return (res as any).error("Failed to update menu");
   }
 };

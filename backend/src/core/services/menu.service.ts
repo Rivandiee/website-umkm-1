@@ -1,6 +1,7 @@
 import prisma from "../../config/prisma";
 
 export class MenuService {
+  // Mendapatkan semua menu (untuk customer - hanya yang available)
   static async getAllMenus(categoryName?: string) {
     const whereClause: any = { isAvailable: true };
     
@@ -15,6 +16,7 @@ export class MenuService {
     });
   }
 
+  // Mendapatkan semua menu (untuk admin - termasuk yang tidak available)
   static async getAdminMenus() {
     return await prisma.menu.findMany({
       include: { category: true },
@@ -22,6 +24,16 @@ export class MenuService {
     });
   }
 
+  // [TAMBAHAN BARU] Mendapatkan satu menu berdasarkan ID
+  // Digunakan oleh controller untuk mengecek gambar lama sebelum update/delete
+  static async getMenuById(id: number) {
+    return await prisma.menu.findUnique({
+      where: { id },
+      include: { category: true } // Opsional: sertakan kategori jika perlu
+    });
+  }
+
+  // Membuat menu baru
   static async createMenu(data: {
     name: string;
     price: number;
@@ -38,6 +50,7 @@ export class MenuService {
     });
   }
 
+  // Mengupdate status ketersediaan menu
   static async updateStatus(id: number, isAvailable: boolean) {
     return await prisma.menu.update({
       where: { id },
@@ -45,12 +58,14 @@ export class MenuService {
     });
   }
 
+  // Menghapus menu
   static async deleteMenu(id: number) {
     return await prisma.menu.delete({
       where: { id }
     });
   }
 
+  // Mengupdate detail menu
   static async updateMenu(id: number, data: any) {
     return await prisma.menu.update({
       where: { id },
