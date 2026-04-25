@@ -1,65 +1,71 @@
-// frontend/src/components/customer/menu/HeroSection.tsx
 "use client";
 
 import { motion } from "framer-motion";
-import { Sparkles, Star } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
 
 export default function HeroSection() {
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 11 ? "Selamat Pagi" : hour < 15 ? "Selamat Siang" : hour < 18 ? "Selamat Sore" : "Selamat Malam";
+
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="relative bg-gradient-to-r from-orange-500 to-pink-500 px-4 py-8 overflow-hidden"
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="mx-4 mt-4 rounded-2xl bg-[#fdf8f3] border border-orange-100 px-5 py-5 overflow-hidden relative"
     >
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-10 left-10 w-20 h-20 bg-white rounded-full blur-xl" />
-        <div className="absolute bottom-10 right-10 w-32 h-32 bg-white rounded-full blur-xl" />
-      </div>
+      {/* Decorative circle */}
+      <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-orange-100/60" />
+      <div className="absolute -right-2 -bottom-8 w-20 h-20 rounded-full bg-pink-100/40" />
 
       <div className="relative z-10">
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex items-center gap-2 mb-3"
+        {/* Greeting */}
+        <motion.p
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="text-xs font-medium text-orange-400 uppercase tracking-widest mb-1"
         >
-          <Sparkles size={20} className="text-yellow-300" />
-          <span className="text-white text-sm font-semibold">
-            Promo Spesial Hari Ini
-          </span>
-        </motion.div>
+          {greeting} 👋
+        </motion.p>
 
+        {/* Main text */}
         <motion.h2
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-3xl font-bold text-white mb-2"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="text-xl font-bold text-gray-900 mb-1 leading-snug"
+          style={{ fontFamily: "Georgia, serif" }}
         >
-          Diskon 20% untuk Menu Pilihan!
+          Mau makan apa <br />
+          hari ini?
         </motion.h2>
 
         <motion.p
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="text-white/90 mb-4"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="text-xs text-gray-400 mb-4"
         >
-          Nikmati hidangan lezat dengan harga spesial
+          Pilih menu favoritmu dan kami siapkan segera
         </motion.p>
 
+        {/* Info chips */}
         <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="flex items-center gap-2"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          className="flex items-center gap-3"
         >
-          <div className="flex items-center gap-1">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} size={16} className="text-yellow-300 fill-yellow-300" />
-            ))}
+          <div className="flex items-center gap-1.5 bg-white border border-gray-100 rounded-full px-3 py-1.5 shadow-sm">
+            <Clock size={11} className="text-orange-400" />
+            <span className="text-xs text-gray-500">08.00 – 22.00</span>
           </div>
-          <span className="text-white text-sm font-medium">4.8 (1.2k reviews)</span>
+          <div className="flex items-center gap-1.5 bg-white border border-gray-100 rounded-full px-3 py-1.5 shadow-sm">
+            <MapPin size={11} className="text-orange-400" />
+            <span className="text-xs text-gray-500">Jakarta</span>
+          </div>
         </motion.div>
       </div>
     </motion.div>

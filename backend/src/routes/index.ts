@@ -10,6 +10,7 @@ import adminAnalyticsRoutes from "./admin/analytics.routes";
 import customerMenuRoutes from "./customer/menu.routes";
 import customerOrderRoutes from "./customer/order.routes";
 import customerSessionRoutes from "./customer/session.routes";
+import customerCategoryRoute from "./customer/category.route";
 
 import * as PaymentController from "../controllers/customer/payment.controller";
 
@@ -28,6 +29,8 @@ router.use("/admin/analytics", adminAnalyticsRoutes);
 router.use("/customer", customerMenuRoutes);
 router.use("/customer", customerOrderRoutes);
 router.use("/customer", customerSessionRoutes);
+router.use("/customer", customerCategoryRoute);
+
 
 // Webhook Midtrans (Public Access)
 router.post("/payment/notification", PaymentController.handleMidtransNotification);
